@@ -3,19 +3,19 @@ const {
   resolveDestination,
   calculateWalkingRoute,
   translateDynamicText
-} = require("../services/googleService");
+} = require("../services/osmRoutingService");
 
 const router = express.Router();
 
 /**
  * Main route calculation endpoint.
- * Handles destination text + current coordinates -> Places API -> Routes API.
+ * Handles destination + current coordinates -> OpenStreetMap Nominatim -> OSRM foot routing.
  */
 router.post("/route", async (req, res) => {
   try {
     const { origin, destination, language } = req.body;
 
-    if (!destination || typeof destination !== "string") {
+    if (!destination || (typeof destination !== "string" && typeof destination !== "object")) {
       return res.status(400).json({
         status: "error",
         message: "Destination name or address is required."
@@ -88,6 +88,7 @@ router.post("/route", async (req, res) => {
       },
       distanceMeters: routeResult.distanceMeters,
       duration: routeResult.duration,
+      coordinates: routeResult.coordinates,
       polyline: routeResult.polyline,
       steps: routeResult.steps
     });

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../utils/LanguageContext.jsx";
 
 export function QrMarkerScanner({ onScan, onError, disabled }) {
+  const { t } = useLanguage();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const loopRef = useRef(null);
@@ -88,15 +90,13 @@ export function QrMarkerScanner({ onScan, onError, disabled }) {
   };
 
   return (
-    <div className="qr-marker-panel" role="region" aria-label="Location marker scanning">
+    <div className="qr-marker-panel" role="region" aria-label={t("qr_scanner_title")}>
       <p className="indoor-hint">
-        Scan a QR marker to update your indoor position, or type a marker code. Format:{" "}
-        <code>INDOOR:buildingId:floorId:locationKey</code>
+        {t("qr_scanner_desc")} Format: <code>INDOOR:buildingId:floorId:locationKey</code>
       </p>
       {!supportsBarcodeDetector && (
         <p className="indoor-warning" role="status">
-          Camera QR scanning requires a browser with Barcode Detector support (e.g. Chrome). Manual
-          entry is always available.
+          Camera QR scanning requires a browser with Barcode Detector support. Manual entry is always available.
         </p>
       )}
 
@@ -117,13 +117,13 @@ export function QrMarkerScanner({ onScan, onError, disabled }) {
             className="primary-btn"
             onClick={startScanning}
             disabled={disabled}
-            aria-label="Start QR marker scan"
+            aria-label={t("btn_start_qr")}
           >
-            📷 Scan QR Marker
+            {t("btn_start_qr")}
           </button>
         ) : (
           <button type="button" className="primary-btn danger-btn" onClick={stopCamera}>
-            ⏹ Stop Scanner
+            {t("btn_stop_qr")}
           </button>
         )}
       </div>

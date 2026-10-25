@@ -3,6 +3,7 @@ import {
   VoiceNavigationOrchestrator,
   VOICE_NAV_STATES
 } from "../utils/voiceNavigation/VoiceNavigationOrchestrator.js";
+import { useLanguage } from "../utils/LanguageContext.jsx";
 
 export function VoiceNavigationExperience({
   speakText,
@@ -15,6 +16,7 @@ export function VoiceNavigationExperience({
   onSessionChange,
   onOrchestratorReady
 }) {
+  const { t, setLanguage } = useLanguage();
   const orchestratorRef = useRef(null);
   const [voiceNavState, setVoiceNavState] = useState(VOICE_NAV_STATES.IDLE);
   const [sessionActive, setSessionActive] = useState(false);
@@ -24,7 +26,8 @@ export function VoiceNavigationExperience({
   useEffect(() => {
     orchestratorRef.current = new VoiceNavigationOrchestrator({
       ...orchestratorDeps,
-      speak: (text) => speakText(text),
+      setLanguage: (code) => setLanguage(code),
+      speak: (text, meta) => speakText(text, meta?.customLang),
       isSpeaking: () => isSpeakingRef?.current,
       onStateChange: ({ state, sessionActive: active, error }) => {
         setVoiceNavState(state);
@@ -36,23 +39,23 @@ export function VoiceNavigationExperience({
       stopListening: (user) => onDisableListening?.(user)
     });
     onOrchestratorReady?.(orchestratorRef.current);
-  }, [orchestratorDeps, speakText, onEnableListening, onDisableListening, isSpeakingRef, onSessionChange, onOrchestratorReady]);
+  }, [orchestratorDeps, speakText, onEnableListening, onDisableListening, isSpeakingRef, onSessionChange, onOrchestratorReady, setLanguage]);
 
   const enableVoiceNavigation = async () => {
     setStatusMessage("");
     if (!speechSupported) {
-      setStatusMessage("Speech recognition is not supported in this browser. Use the text command box below.");
+      setStatusMessage(t("messages.sttNotSupported"));
       return;
     }
     const ok = await orchestratorRef.current?.enableSession();
     if (ok) {
-      setStatusMessage("Voice navigation is active. Microphone listening when not speaking.");
+      setStatusMessage(t("messages.voiceControlEnabled"));
     }
   };
 
   const disableVoiceNavigation = () => {
     orchestratorRef.current?.disableSession();
-    setStatusMessage("Voice navigation session ended.");
+    setStatusMessage(t("messages.voiceControlDisabled"));
   };
 
   const submitTextFallback = async () => {
@@ -65,78 +68,108 @@ export function VoiceNavigationExperience({
     setTextFallback("");
   };
 
-  const stateLabel = {
-    [VOICE_NAV_STATES.IDLE]: "Idle",
-    [VOICE_NAV_STATES.AWAITING_PERMISSION]: "Awaiting microphone permission",
-    [VOICE_NAV_STATES.LISTENING]: "Listening",
-    [VOICE_NAV_STATES.PROCESSING]: "Processing command",
-    [VOICE_NAV_STATES.CONFIRMING_DESTINATION]: "Confirming destination",
-    [VOICE_NAV_STATES.DETERMINING_LOCATION]: "Determining location",
-    [VOICE_NAV_STATES.PLANNING_ROUTE]: "Planning route",
-    [VOICE_NAV_STATES.NAVIGATING]: "Navigating",
-    [VOICE_NAV_STATES.PAUSED]: "Paused",
-    [VOICE_NAV_STATES.ERROR]: "Error — see message below"
-  }[voiceNavState] || voiceNavState;
+  const repeatOnboarding = () => {
+    speakText(t("messages.onboarding"));
+  };
+
+  const stateLabels = {
+    [VOICE_NAV_STATES.IDLE]: t("state_idle"),
+    [VOICE_NAV_STATES.AWAITING_PERMISSION]: t("state_awaiting_permission"),
+    [VOICE_NAV_STATES.LISTENING]: t("state_listening"),
+    [VOICE_NAV_STATES.PROCESSING]: t("state_processing"),
+    [VOICE_NAV_STATES.CONFIRMING_DESTINATION]: t("state_confirming_destination"),
+    [VOICE_NAV_STATES.DETERMINING_LOCATION]: t("state_determining_location"),
+    [VOICE_NAV_STATES.PLANNING_ROUTE]: t("state_planning_route"),
+    [VOICE_NAV_STATES.NAVIGATING]: t("state_navigating"),
+    [VOICE_NAV_STATES.PAUSED]: t("state_paused"),
+    [VOICE_NAV_STATES.ERROR]: t("state_error")
+  };
+
+  const currentLabel = stateLabels[voiceNavState] || voiceNavState;
 
   return (
-    <section className="feature-card voice-nav-entry" aria-label="Voice-first navigation">
+    <section className="feature-card voice-nav-entry" aria-label={t("voice_nav_experience_title")}>
       <div className="card-header">
         <div className="card-icon" aria-hidden="true">
           🎧
         </div>
         <div>
-          <h2 className="card-title">Voice-First Navigation</h2>
+          <h2 className="card-title">{t("voice_nav_experience_title")}</h2>
           <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: "0.95rem", marginTop: 4 }}>
-            Primary interface for spoken destinations and turn-by-turn guidance. Browsers require a button
-            tap before microphone access and speech.
+            {t("voice_nav_experience_subtitle")}
           </p>
         </div>
       </div>
 
       <p className="voice-nav-perms" role="note">
-        Enable microphone permission when prompted. Optional camera access improves environment hints via
-        existing obstacle detection but does not replace GPS or QR markers indoors.
+        {t("voice_nav_perms_note")}
       </p>
 
-      <div className="indoor-btn-row">
+      <div className="indoor-btn-row" style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "12px" }}>
         {!sessionActive ? (
-          <button type="button" className="primary-btn success-btn" onClick={enableVoiceNavigation}>
-            Enable Voice Navigation
+          <button
+            type="button"
+            className="primary-btn success-btn"
+            onClick={enableVoiceNavigation}
+            aria-label={t("enable_voice_nav")}
+            id="start-voice-nav-btn"
+          >
+            {t("enable_voice_nav")}
           </button>
         ) : (
-          <button type="button" className="primary-btn danger-btn" onClick={disableVoiceNavigation}>
-            End Voice Session
+          <button
+            type="button"
+            className="primary-btn danger-btn"
+            onClick={disableVoiceNavigation}
+            aria-label={t("end_voice_nav")}
+          >
+            {t("end_voice_nav")}
           </button>
         )}
+        <button
+          type="button"
+          className="primary-btn accent-btn"
+          onClick={repeatOnboarding}
+          aria-label={t("repeat_onboarding")}
+        >
+          {t("repeat_onboarding")}
+        </button>
       </div>
 
       <div
         className="result-box"
-        style={{ marginTop: 12, borderColor: "#667eea" }}
+        style={{ marginTop: 14, borderColor: "#667eea" }}
         aria-live="polite"
         role="status"
       >
-        <div className="result-title">Voice session: {stateLabel}</div>
+        <div className="result-title">
+          {t("voice_session_status")}: {currentLabel}
+        </div>
         <div className="result-content">
-          Microphone: {isListening ? "listening" : sessionActive ? "waiting / speaking" : "off"}
+          {t("mic_status")}:{" "}
+          <strong>
+            {isListening ? t("mic_listening") : sessionActive ? t("mic_waiting") : t("mic_off")}
+          </strong>
           {statusMessage ? ` — ${statusMessage}` : ""}
         </div>
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <label htmlFor="voice-text-fallback">Text command fallback</label>
+        <label htmlFor="voice-text-fallback" style={{ display: "block", marginBottom: "6px", fontWeight: "600" }}>
+          {t("text_fallback_label")}
+        </label>
         <div className="nav-input-row">
           <input
             id="voice-text-fallback"
             className="nav-input"
-            placeholder='e.g. "Take me to the computer lab"'
+            placeholder={t("text_fallback_placeholder")}
             value={textFallback}
             onChange={(e) => setTextFallback(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submitTextFallback()}
-            aria-label="Type a navigation voice command"
+            aria-label={t("text_fallback_label")}
           />
-          <button type="button" className="primary-btn" onClick={submitTextFallback}>
-            Send
+          <button type="button" className="primary-btn" onClick={submitTextFallback} aria-label={t("send")}>
+            {t("send")}
           </button>
         </div>
       </div>

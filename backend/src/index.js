@@ -36,24 +36,23 @@ app.get("/", (req, res) => {
 // ------------------ TTS ------------------
 app.post("/tts", async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, lang, language, voice } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: "Text is required" });
     }
 
     const aiBaseUrl = process.env.AI_BASE_URL || "http://127.0.0.1:8000";
-    const response = await axios.post(`${aiBaseUrl}/tts/`, { text });
-
-    if (response.data.filePath) {
-      const fileUrl = `http://localhost:${PORT}/${response.data.filePath}`;
-      return res.json({ ...response.data, fileUrl });
-    }
+    const response = await axios.post(`${aiBaseUrl}/tts/`, {
+      text,
+      lang: lang || language || "en-US",
+      voice
+    });
 
     res.json(response.data);
   } catch (err) {
     console.error("Error calling FastAPI:", err.message);
-    res.status(500).json({ error: "Failed to connect to AI service" });
+    res.status(500).json({ error: "Failed to connect to AI service: " + err.message });
   }
 });
 

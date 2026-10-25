@@ -8,14 +8,14 @@ const upload = multer({ dest: "uploads/" });
 // Text-to-Speech
 router.post("/tts", async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, lang, language, voice } = req.body;
     if (!text) return res.status(400).json({ error: "Text is required" });
 
-    const result = await textToSpeech(text);
+    const result = await textToSpeech(text, lang || language || "en-US", voice);
     res.json(result);
   } catch (error) {
     console.error("TTS Error:", error.message);
-    res.status(500).json({ error: "Failed to convert text to speech" });
+    res.status(500).json({ error: "Failed to convert text to speech: " + error.message });
   }
 });
 

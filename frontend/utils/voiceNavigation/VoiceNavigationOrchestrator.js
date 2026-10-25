@@ -7,6 +7,7 @@ import {
 } from "./voiceNavApi.js";
 import { analyzeDetectionsForEnvironment, pickNavigationObstacleWarning } from "./cameraAssistance.js";
 import { calculateRoute } from "../indoor/indoorApi.js";
+import { formatDetectionSentence, getMessage } from "../languages.js";
 
 export const VOICE_NAV_STATES = {
   IDLE: "IDLE",
@@ -69,14 +70,14 @@ export class VoiceNavigationOrchestrator {
     if (!started) {
       this.setState(VOICE_NAV_STATES.ERROR, { error: "Microphone not available." });
       this.speak(
-        "Voice navigation needs microphone permission. Use the Enable Voice Navigation button and allow the microphone when prompted.",
+        getMessage("micPermissionError", this.deps.getLanguage?.()),
         { force: true, kind: "error" }
       );
       return false;
     }
     this.setState(VOICE_NAV_STATES.LISTENING);
     this.speak(
-      "Welcome to Dhristi voice navigation. Say take me to a destination, ask where am I, or say help. You can also say stop navigation at any time.",
+      getMessage("onboarding", this.deps.getLanguage?.()),
       { force: true, kind: "welcome" }
     );
     return true;
@@ -149,16 +150,26 @@ export class VoiceNavigationOrchestrator {
 
   async handleCommand(cmd, rawTranscript) {
     switch (cmd.type) {
+      case "CHANGE_LANGUAGE":
+        this.deps.setLanguage?.(cmd.language);
+        this.speak(
+          getMessage("languageChanged", cmd.language, { name: cmd.languageName }),
+          { force: true, customLang: cmd.language }
+        );
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
       case "HELP":
-        this.speak(this.deps.getHelpText?.() || "Say take me to a destination, where am I, repeat the instruction, pause, resume, or stop navigation.", {
+        this.speak(this.deps.getHelpText?.() || getMessage("help", this.deps.getLanguage?.()), {
           force: true
         });
         this.setState(VOICE_NAV_STATES.LISTENING);
         return;
 
       case "STOP_NAVIGATION":
+      case "CANCEL":
         this.stopActiveNavigation(true);
-        this.speak("Navigation stopped.", { force: true });
+        this.speak(getMessage("navStopped", this.deps.getLanguage?.()), { force: true });
         return;
 
       case "PAUSE_NAVIGATION":
@@ -168,7 +179,7 @@ export class VoiceNavigationOrchestrator {
           this.deps.indoorNav?.pause?.();
         }
         this.setState(VOICE_NAV_STATES.PAUSED);
-        this.speak("Navigation paused.", { force: true });
+        this.speak(getMessage("navPaused", this.deps.getLanguage?.()), { force: true });
         return;
 
       case "RESUME_NAVIGATION":
@@ -178,29 +189,107 @@ export class VoiceNavigationOrchestrator {
           this.deps.indoorNav?.resume?.();
         }
         this.setState(VOICE_NAV_STATES.NAVIGATING);
-        this.speak("Navigation resumed.", { force: true });
+        this.speak(getMessage("navResumed", this.deps.getLanguage?.()), { force: true });
         return;
 
       case "REPEAT_INSTRUCTION":
         if (this.activeMode === "outdoor") this.deps.outdoorNav?.repeatInstruction?.();
         else if (this.activeMode === "indoor") this.deps.indoorNav?.repeatInstruction?.();
-        else this.speak("There is no active navigation route.", { force: true });
+        else this.speak(getMessage("navNoActiveRoute", this.deps.getLanguage?.()), { force: true });
         this.setState(this.indoorSnapshot.isNavigating ? VOICE_NAV_STATES.NAVIGATING : VOICE_NAV_STATES.LISTENING);
         return;
 
       case "NEXT_STEP":
         if (this.activeMode === "indoor" && this.indoorSnapshot.isNavigating) {
           this.deps.indoorNav?.nextStep?.();
+        } else if (this.activeMode === "outdoor" && this.deps.outdoorNav?.getNextTurnInstruction) {
+          const nextTurn = this.deps.outdoorNav.getNextTurnInstruction();
+          this.speak(nextTurn || getMessage("navNoActiveRoute", this.deps.getLanguage?.()), { force: true });
         } else {
-          this.speak("Automatic step advance requires a reliable location update. For indoor demo, say you have reached the next landmark or scan a QR marker.", {
+          this.speak(getMessage("qrPrompt", this.deps.getLanguage?.()), {
             force: true
           });
         }
         this.setState(VOICE_NAV_STATES.NAVIGATING);
         return;
 
+      case "REROUTE":
+        if (this.activeMode === "outdoor") {
+          this.speak(getMessage("recalculatingRoute", this.deps.getLanguage?.()), { force: true });
+          this.deps.outdoorNav?.recalculateRoute?.();
+        } else if (this.activeMode === "indoor") {
+          this.speak(getMessage("recalculatingRoute", this.deps.getLanguage?.()), { force: true });
+        } else {
+          this.speak(getMessage("navNoActiveRoute", this.deps.getLanguage?.()), { force: true });
+        }
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
+      case "ROUTE_PROGRESS":
+        if (this.activeMode === "outdoor") {
+          const progress = this.deps.outdoorNav?.getProgress?.();
+          if (progress) {
+            this.speak(
+              getMessage("routeProgress", this.deps.getLanguage?.(), {
+                distance: progress.distanceText,
+                duration: progress.durationText
+              }),
+              { force: true }
+            );
+          } else {
+            this.speak(getMessage("routeProgress", this.deps.getLanguage?.(), { distance: "0m", duration: "0s" }), { force: true });
+          }
+        } else if (this.activeMode === "indoor" && this.indoorSnapshot.route) {
+          this.speak(
+            getMessage("routeProgress", this.deps.getLanguage?.(), {
+              distance: `${this.indoorSnapshot.route.totalCostMeters || 0}m`,
+              duration: "1 min"
+            }),
+            { force: true }
+          );
+        } else {
+          this.speak(getMessage("navNoActiveRoute", this.deps.getLanguage?.()), { force: true });
+        }
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
       case "WHERE_AM_I":
         await this.answerWhereAmI();
+        return;
+
+      case "DESCRIBE_AROUND":
+        this.deps.describeSurroundings?.();
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
+      case "OBSTACLE_QUERY": {
+        const currentObstacles = this.deps.getLatestDetections?.() || [];
+        if (currentObstacles.length > 0) {
+          const sentences = currentObstacles.map((d) => formatDetectionSentence(d, this.deps.getLanguage?.()));
+          this.speak(sentences.join(". "), { force: true, kind: "obstacle" });
+        } else {
+          this.speak(getMessage("noObjectsInView", this.deps.getLanguage?.()), { force: true });
+        }
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+      }
+
+      case "READ_TEXT":
+        this.deps.captureFrameForOCR?.();
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
+      case "READ_QR":
+        this.speak(getMessage("qrPrompt", this.deps.getLanguage?.()), { force: true });
+        this.deps.triggerQrScan?.();
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
+      case "START_INDOOR":
+        this.deps.setNavigationMode?.("indoor");
+        this.environment = { classification: "indoor", confidence: 0.95 };
+        this.speak(getMessage("indoorPrompt", this.deps.getLanguage?.()), { force: true });
+        this.setState(VOICE_NAV_STATES.LISTENING);
         return;
 
       case "ENVIRONMENT_QUERY":
@@ -212,14 +301,14 @@ export class VoiceNavigationOrchestrator {
       case "DECLARE_INDOOR":
         this.environment = { classification: "indoor", confidence: 0.9 };
         this.deps.setNavigationMode?.("indoor");
-        this.speak("Indoor mode selected.", { force: true });
+        this.speak(getMessage("indoorPrompt", this.deps.getLanguage?.()), { force: true });
         this.setState(VOICE_NAV_STATES.LISTENING);
         return;
 
       case "DECLARE_OUTDOOR":
         this.environment = { classification: "outdoor", confidence: 0.9 };
         this.deps.setNavigationMode?.("outdoor");
-        this.speak("Outdoor mode selected.", { force: true });
+        this.speak(getMessage("outdoorPrompt", this.deps.getLanguage?.()), { force: true });
         this.setState(VOICE_NAV_STATES.LISTENING);
         return;
 
@@ -228,7 +317,28 @@ export class VoiceNavigationOrchestrator {
         await this.handleDestinationRequest(cmd.destination || rawTranscript);
         return;
 
+      case "START_SLAM":
+      case "STOP_SLAM":
+      case "PAUSE_SLAM":
+      case "RESUME_SLAM":
+      case "START_LIVE_DETECTION":
+      case "STOP_LIVE_DETECTION":
+      case "REPEAT_ONBOARDING":
+      case "OPEN_INDOOR":
+      case "OPEN_OUTDOOR":
+      case "START_NAVIGATION":
+        if (this.deps.onAppCommand) {
+          this.deps.onAppCommand(cmd, rawTranscript);
+        }
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
       default:
+        if (this.deps.onAppCommand && cmd.type && cmd.type !== "UNKNOWN") {
+          this.deps.onAppCommand(cmd, rawTranscript);
+          this.setState(VOICE_NAV_STATES.LISTENING);
+          return;
+        }
         this.speak("I did not understand. Say help for available commands.", { force: true });
         this.setState(VOICE_NAV_STATES.LISTENING);
     }

@@ -21,11 +21,13 @@ import time
 import numpy as np
 import cv2
 
-from utils.text_to_speech import generate_tts_file
+from typing import Optional
+from utils.text_to_speech import generate_tts_file, get_voice_for_language, LANGUAGE_VOICE_MAP
 from utils.speech_to_text import convert_speech_to_text
 from utils.object_detection import detect_objects
 from utils.ocr_utils import extract_text_from_image, text_to_speech
 from utils.live_detection import start_live_detection, stop_live_detection, running, get_current_detections, process_frame
+from utils.slam_engine import slam_instance
 
 router = APIRouter()
 
@@ -55,6 +57,8 @@ latest_detections = []  # Add this missing global variable
 # ---------------- Models ----------------
 class TTSRequest(BaseModel):
     text: str
+    lang: Optional[str] = "en-US"
+    voice: Optional[str] = None
 
 # ---------------- Root ----------------
 @app.get("/")
@@ -87,11 +91,33 @@ def live_detection_stop():
 @app.post("/tts/")
 async def tts_endpoint(req: TTSRequest):
     try:
+        clean_text = req.text.strip() if req.text else ""
+        if not clean_text:
+            return {"status": "error", "message": "Text cannot be empty"}
+
+        voice = get_voice_for_language(req.lang, req.voice)
         filename = f"tts_{uuid.uuid4().hex}.mp3"
-        await generate_tts_file(req.text, filename)
-        return {"status": "success", "file": filename}
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        await generate_tts_file(clean_text, filepath, voice=voice)
+        return {
+            "status": "success",
+            "file": filename,
+            "filePath": f"uploads/{filename}",
+            "audioUrl": f"/uploads/{filename}",
+            "voice": voice,
+            "lang": req.lang
+        }
     except Exception as e:
+        print(f"TTS Error: {e}")
         return {"status": "error", "message": str(e)}
+
+@app.get("/tts/voices/")
+def tts_voices_endpoint():
+    return {
+        "status": "success",
+        "engine": "edge-tts",
+        "voices": LANGUAGE_VOICE_MAP
+    }
 
 # ---------------- STT ----------------
 @app.post("/stt/")
@@ -268,8 +294,7 @@ async def read_text(file: UploadFile = File(...)):
         if extracted_text:
             try:
                 audio_file = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}_ocr.mp3")
-                tts = gTTS(text=extracted_text, lang="en")
-                tts.save(audio_file)
+                await generate_tts_file(extracted_text, audio_file, voice=get_voice_for_language("en-US"))
                 print(f"🔊 Audio file saved: {audio_file}")
             except Exception as tts_error:
                 print(f"❌ TTS error: {str(tts_error)}")
@@ -288,4 +313,57 @@ async def read_text(file: UploadFile = File(...)):
             {"status": "error", "message": f"Server error: {str(e)}"}, 
             status_code=500
         )
+
+# ---------------- SLAM Endpoints ----------------
+class SLAMRouteRequest(BaseModel):
+    destination: str
+
+@app.post("/slam/frame/")
+async def slam_process_frame(file: UploadFile = File(...)):
+    """
+    Process single camera frame through Visual SLAM Engine (Visual Odometry & Landmark Graph Mapping).
+    """
+    try:
+        content = await file.read()
+        nparr = np.frombuffer(content, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            return JSONResponse({"status": "error", "message": "Invalid image frame"}, status_code=400)
+
+        # Optional concurrent YOLO detection for landmarks (doors, chairs, stairs)
+        try:
+            detections = process_frame(frame)
+        except Exception:
+            detections = []
+
+        result = slam_instance.process_frame(frame, detected_objects=detections)
+        return JSONResponse(result)
+    except Exception as e:
+        print(f"SLAM error: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+@app.get("/slam/status/")
+def slam_get_status():
+    """
+    Get current SLAM pose, tracking confidence, keyframes, and explored graph.
+    """
+    return JSONResponse(slam_instance._build_status())
+
+@app.post("/slam/reset/")
+def slam_reset():
+    """
+    Reset Visual SLAM exploration session.
+    """
+    slam_instance.reset()
+    return {"status": "success", "message": "SLAM mapping session reset to origin."}
+
+@app.post("/slam/route/")
+def slam_plan_route(req: SLAMRouteRequest):
+    """
+    Plan a walking route on the explored topological graph towards target landmark.
+    """
+    result = slam_instance.plan_route_to_target(req.destination)
+    return JSONResponse(result)
+
 

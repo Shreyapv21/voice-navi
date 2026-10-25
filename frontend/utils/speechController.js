@@ -1,4 +1,5 @@
 // frontend/utils/speechController.js
+import { parseNavigationUtterance } from "./voiceNavigation/voiceCommandParser.js";
 
 export class SpeechController {
   constructor({
@@ -57,9 +58,15 @@ export class SpeechController {
 
     this.recognition.onresult = (event) => {
       // Prevent feedback loops if TTS is actively speaking
-      if (this.isSpeakingRef.current) {
+      const isActuallySpeaking =
+        this.isSpeakingRef.current && typeof window !== "undefined" && window.speechSynthesis?.speaking;
+      if (isActuallySpeaking) {
         console.log("Ignoring speech input during TTS playback.");
         return;
+      }
+      // If speechSynthesis is not actually speaking, ensure speaking ref is cleared
+      if (this.isSpeakingRef.current && typeof window !== "undefined" && !window.speechSynthesis?.speaking) {
+        this.isSpeakingRef.current = false;
       }
 
       const results = event.results;
@@ -74,10 +81,10 @@ export class SpeechController {
     };
 
     this.recognition.onerror = (event) => {
-      console.warn("Speech recognition error:", event.error);
       const errorType = event.error;
 
       if (errorType === "not-allowed" || errorType === "service-not-allowed") {
+        console.warn("Speech recognition error:", errorType);
         this.isListeningIntentional = false;
         this.isListening = false;
         this.onStateChange({ isListening: false, intentional: false });
@@ -85,15 +92,12 @@ export class SpeechController {
         return;
       }
 
-      if (errorType === "no-speech") {
-        // Normal silence timeout; do not trigger error loop
+      if (errorType === "no-speech" || errorType === "aborted") {
+        // Normal silence timeout or aborted restart; do not trigger error loop or noisy logs
         return;
       }
 
-      if (errorType === "aborted") {
-        return;
-      }
-
+      console.warn("Speech recognition error:", errorType);
       // Non-fatal error notification
       this.onError(`Voice recognition: ${errorType}`);
     };
@@ -168,162 +172,21 @@ export class SpeechController {
       return; // Debounce rapid triggers
     }
 
-    if (this.getVoiceNavActive()) {
-      this.onVoiceNavTranscript(rawTranscript);
+    const command = this.parseCommand(rawTranscript);
+    if (!command || command.type === "UNKNOWN") {
       return;
     }
 
-    const text = rawTranscript.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, "").trim();
+    this.lastCommandTime = now;
+    this.onCommand(command, rawTranscript);
 
-    // Match supported commands
-    const command = this.parseCommand(text, rawTranscript);
-    if (command) {
-      this.lastCommandTime = now;
-      this.onCommand(command);
+    // If an ongoing voice navigation session is active, also notify the orchestrator
+    if (this.getVoiceNavActive()) {
+      this.onVoiceNavTranscript(rawTranscript);
     }
   }
 
-  parseCommand(text, original) {
-    // 1. HELP / COMMANDS
-    if (
-      text === "help" ||
-      text.includes("what can i say") ||
-      text.includes("commands") ||
-      text.includes("voice commands") ||
-      text.includes("मदद") ||
-      text.includes("सहायता") ||
-      text.includes("ಸಹಾಯ") ||
-      text.includes("உதவி") ||
-      text.includes("సహాయం") ||
-      text.includes("സഹായം")
-    ) {
-      return { type: "HELP" };
-    }
-
-    // 2. START CAMERA / START LIVE DETECTION
-    if (
-      text.includes("start live detection") ||
-      text.includes("start camera") ||
-      text.includes("start live") ||
-      text.includes("start detection") ||
-      text.includes("open camera") ||
-      text.includes("turn on camera") ||
-      text.includes("कैमरा शुरू") ||
-      text.includes("लाइव पहचान शुरू") ||
-      text.includes("ಕ್ಯಾಮರಾ ಪ್ರಾರಂಭಿಸಿ") ||
-      text.includes("கேமராவை தொடங்கு") ||
-      text.includes("కెమెరాను ప్రారంభించండి") ||
-      text.includes("ക്യാമറ ആരംഭിക്കുക")
-    ) {
-      return { type: "START_LIVE_DETECTION" };
-    }
-
-    // 3. STOP CAMERA / STOP LIVE DETECTION
-    if (
-      text.includes("stop live detection") ||
-      text.includes("stop camera") ||
-      text.includes("stop live") ||
-      text.includes("stop detection") ||
-      text.includes("close camera") ||
-      text.includes("turn off camera") ||
-      text.includes("कैमरा बंद") ||
-      text.includes("लाइव पहचान बंद") ||
-      text.includes("ಕ್ಯಾಮರಾ ನಿಲ್ಲಿಸಿ") ||
-      text.includes("கேமராவை நிறுத்து") ||
-      text.includes("కెమెరాను ఆపండి") ||
-      text.includes("ക്യാമറ നിർത്തുക")
-    ) {
-      return { type: "STOP_LIVE_DETECTION" };
-    }
-
-    // 4. WHAT IS AROUND ME / WHAT IS IN FRONT OF ME / LOOK AROUND
-    if (
-      text.includes("what is around me") ||
-      text.includes("what's around me") ||
-      text.includes("what is in front of me") ||
-      text.includes("what's in front of me") ||
-      text.includes("look around") ||
-      text.includes("what do you see") ||
-      text.includes("what is in front") ||
-      text.includes("मेरे सामने क्या है") ||
-      text.includes("आसपास क्या है") ||
-      text.includes("ನನ್ನ ಮುಂದೆ ಏನಿದೆ") ||
-      text.includes("சுற்றி என்ன இருக்கிறது") ||
-      text.includes("నా ముందు ఏముంది") ||
-      text.includes("എന്റെ മുന്നിൽ എന്താണ്")
-    ) {
-      return { type: "DESCRIBE_AROUND" };
-    }
-
-    // 5. READ THIS / READ SIGNBOARD / READ TEXT
-    if (
-      text.includes("read this") ||
-      text.includes("read signboard") ||
-      text.includes("read text") ||
-      text.includes("read sign") ||
-      text.includes("read board") ||
-      text.includes("यह पढ़ो") ||
-      text.includes("बोर्ड पढ़ो") ||
-      text.includes("ಇದನ್ನು ಓದಿ") ||
-      text.includes("இதைப் படியுங்கள்") ||
-      text.includes("దీన్ని చదవండి") ||
-      text.includes("ഇത് വായിക്കുക")
-    ) {
-      return { type: "READ_TEXT" };
-    }
-
-    if (text.includes("pause navigation") || text === "pause") {
-      return { type: "PAUSE_NAVIGATION" };
-    }
-    if (text.includes("resume navigation") || text === "resume") {
-      return { type: "RESUME_NAVIGATION" };
-    }
-    if (text.includes("repeat") && (text.includes("instruction") || text.includes("direction"))) {
-      return { type: "REPEAT_INSTRUCTION" };
-    }
-    if (text.includes("where am i") || text.includes("my location")) {
-      return { type: "WHERE_AM_I" };
-    }
-
-    // 6. STOP NAVIGATION / CANCEL NAVIGATION
-    if (
-      text.includes("stop navigation") ||
-      text.includes("cancel navigation") ||
-      text.includes("end navigation") ||
-      text.includes("नेविगेशन बंद") ||
-      text.includes("ನ್ಯಾವಿಗೇಷನ್ ನಿಲ್ಲಿಸಿ") ||
-      text.includes("வழிசெலுத்தலை நிறுத்து") ||
-      text.includes("నావిగేషన్ ఆపండి") ||
-      text.includes("നാവിഗേഷൻ നിർത്തുക")
-    ) {
-      return { type: "STOP_NAVIGATION" };
-    }
-
-    // 7. TAKE ME TO [DESTINATION] / NAVIGATE TO [DESTINATION]
-    const navPatterns = [
-      /take me to (.+)/i,
-      /navigate to (.+)/i,
-      /directions to (.+)/i,
-      /guide me to (.+)/i,
-      /go to (.+)/i,
-      /मुझे (.+) ले चलो/i,
-      /(.+) का रास्ता बताओ/i,
-      /(.+) ಗೆ ಕರೆದೊಯ್ಯಿರಿ/i,
-      /(.+) க்கு அழைத்துச் செல்லுங்கள்/i,
-      /(.+) కి తీసుకెళ్లండి/i,
-      /(.+) ലേക്ക് കൊണ്ടുപോകൂ/i,
-    ];
-
-    for (const pattern of navPatterns) {
-      const match = original.match(pattern);
-      if (match && match[1]) {
-        const destination = match[1].replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, "").trim();
-        if (destination.length > 0) {
-          return { type: "NAVIGATE_TO", destination };
-        }
-      }
-    }
-
-    return null;
+  parseCommand(rawTranscript) {
+    return parseNavigationUtterance(rawTranscript);
   }
 }

@@ -1,4 +1,5 @@
 // frontend/utils/navigationManager.js
+import { formatLocalizedDistance, formatLocalizedDuration } from "./languages.js";
 
 /**
  * Calculates Haversine distance in meters between two lat/lng points.
@@ -20,37 +21,17 @@ export function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Format distance into human-friendly string (meters / kilometers).
+ * Format distance into human-friendly string (meters / kilometers) with language support.
  */
-export function formatDistance(meters) {
-  if (!meters || meters < 0) return "0 meters";
-  if (meters >= 1000) {
-    return `${(meters / 1000).toFixed(1)} kilometers`;
-  }
-  return `${Math.round(meters)} meters`;
+export function formatDistance(meters, langCode = "en-US") {
+  return formatLocalizedDistance(meters, langCode);
 }
 
 /**
- * Format duration string from Google Routes API (e.g. "340s" or number) into human-friendly text.
+ * Format duration string from Google/OSM Routes API into human-friendly text with language support.
  */
-export function formatDuration(durationStr) {
-  if (!durationStr) return "a few minutes";
-  let seconds = 0;
-  if (typeof durationStr === "string") {
-    seconds = parseInt(durationStr.replace("s", ""), 10) || 0;
-  } else if (typeof durationStr === "number") {
-    seconds = durationStr;
-  }
-
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 1) return "less than a minute";
-  if (minutes === 1) return "1 minute";
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const remMinutes = minutes % 60;
-    return `${hours} hour${hours > 1 ? "s" : ""} ${remMinutes} minute${remMinutes > 1 ? "s" : ""}`;
-  }
-  return `${minutes} minutes`;
+export function formatDuration(durationStr, langCode = "en-US") {
+  return formatLocalizedDuration(durationStr, langCode);
 }
 
 export class NavigationManager {
@@ -62,6 +43,7 @@ export class NavigationManager {
     this.onError = onError || (() => {});
     this.speak = speak || (() => {});
 
+    this.currentLanguage = "en-US";
     this.isNavigating = false;
     this.destination = null;
     this.routeData = null;
@@ -80,6 +62,12 @@ export class NavigationManager {
     this.isPaused = false;
   }
 
+  setLanguage(langCode) {
+    if (langCode) {
+      this.currentLanguage = langCode;
+    }
+  }
+
   pauseNavigation() {
     this.isPaused = true;
     this.onStateChange({ isPaused: true, status: "PAUSED" });
@@ -94,7 +82,39 @@ export class NavigationManager {
     if (!this.isNavigating || !this.routeData?.steps?.length) return;
     const step = this.routeData.steps[this.currentStepIndex];
     if (step?.instruction) {
-      this.onInstruction({ isRepeat: true, instruction: step.instruction });
+      this.onInstruction({
+        isRepeat: true,
+        instruction: step.instruction,
+        distanceText: formatDistance(step.distanceMeters, this.currentLanguage)
+      });
+    }
+  }
+
+  nextStep() {
+    if (!this.isNavigating || !this.routeData?.steps?.length) return;
+    if (this.currentStepIndex < this.routeData.steps.length - 1) {
+      this.currentStepIndex++;
+      const nextStep = this.routeData.steps[this.currentStepIndex];
+      this.lastSpokenStepIndex = this.currentStepIndex;
+      this.lastInstructionTime = Date.now();
+      if (nextStep.startLocation) {
+        this.currentPosition = nextStep.startLocation;
+      }
+      this.onStateChange({
+        isNavigating: true,
+        status: "ACTIVE",
+        currentStepIndex: this.currentStepIndex,
+        currentStep: nextStep,
+        currentPosition: this.currentPosition
+      });
+      this.onInstruction({
+        isTransition: true,
+        stepIndex: this.currentStepIndex,
+        instruction: nextStep.instruction,
+        distanceText: formatDistance(nextStep.distanceMeters, this.currentLanguage)
+      });
+    } else {
+      this.handleArrival();
     }
   }
 
@@ -131,27 +151,44 @@ export class NavigationManager {
   /**
    * Start a walking navigation session to the requested destination text.
    */
-  async startNavigation(destinationQuery, languageCode = "en-US") {
+  async startNavigation(destinationQuery, languageCode = "en-US", options = {}) {
     try {
       this.stopNavigation(false);
       this.isNavigating = true;
       this.onStateChange({
         isNavigating: true,
         status: "RESOLVING",
-        destinationName: destinationQuery,
+        destinationName: typeof destinationQuery === "object" ? (destinationQuery.name || "Selected Destination") : destinationQuery,
         steps: []
       });
 
-      // 1. Get current user GPS location
-      let origin;
-      try {
-        origin = await this.getCurrentLocation();
+      // 1. Get user GPS location or fallback to demo origin
+      let origin = options.origin || null;
+      let isDemo = !!options.isDemo;
+
+      if (!origin) {
+        try {
+          origin = await this.getCurrentLocation();
+          this.currentPosition = origin;
+          this.isDemoLocation = false;
+        } catch (geoErr) {
+          console.warn("Real GPS unavailable, using demo location:", geoErr.message);
+          // Demo fallback: Mysuru City Center (Sayyaji Rao Road)
+          origin = {
+            latitude: 12.3086,
+            longitude: 76.6531,
+            accuracy: 5,
+            isDemo: true,
+            label: "Demo Location (Mysuru City Center)"
+          };
+          this.currentPosition = origin;
+          this.isDemoLocation = true;
+          isDemo = true;
+          this.onStateChange({ isDemoLocation: true, currentPosition: origin });
+        }
+      } else {
         this.currentPosition = origin;
-      } catch (geoErr) {
-        this.isNavigating = false;
-        this.onStateChange({ isNavigating: false, status: "ERROR" });
-        this.onError("LOCATION_ERROR", geoErr.message);
-        return false;
+        this.isDemoLocation = isDemo;
       }
 
       // 2. Query backend route endpoint
@@ -184,19 +221,20 @@ export class NavigationManager {
       if (data.status !== "success" || !data.steps || data.steps.length === 0) {
         this.isNavigating = false;
         this.onStateChange({ isNavigating: false, status: "ROUTE_NOT_FOUND" });
-        this.onError("ROUTE_NOT_FOUND", data.message || `No route could be found to ${destinationQuery}.`);
+        this.onError("ROUTE_NOT_FOUND", data.message || `No route could be found.`);
         return false;
       }
 
       // 3. Initialize Route
+      this.setLanguage(languageCode);
       this.destination = data.destination;
       this.routeData = data;
       this.currentStepIndex = 0;
       this.lastSpokenStepIndex = -1;
       this.lastInstructionTime = 0;
 
-      const formattedDist = formatDistance(data.distanceMeters);
-      const formattedDur = formatDuration(data.duration);
+      const formattedDist = formatDistance(data.distanceMeters, this.currentLanguage);
+      const formattedDur = formatDuration(data.duration, this.currentLanguage);
 
       this.onStateChange({
         isNavigating: true,
@@ -208,7 +246,11 @@ export class NavigationManager {
         formattedDuration: formattedDur,
         steps: data.steps,
         currentStepIndex: 0,
-        currentStep: data.steps[0]
+        currentStep: data.steps[0],
+        routeData: data,
+        coordinates: data.coordinates,
+        isDemoLocation: isDemo,
+        currentPosition: origin
       });
 
       // 4. Initial spoken confirmation & guidance
@@ -309,7 +351,7 @@ export class NavigationManager {
           isTransition: true,
           stepIndex: this.currentStepIndex,
           instruction: nextStep.instruction,
-          distanceText: formatDistance(nextStep.distanceMeters)
+          distanceText: formatDistance(nextStep.distanceMeters, this.currentLanguage)
         });
         return;
       } else {
@@ -332,7 +374,7 @@ export class NavigationManager {
         isApproaching: true,
         stepIndex: this.currentStepIndex,
         instruction: currentStep.instruction,
-        distanceText: formatDistance(distToEndOfStep || currentStep.distanceMeters)
+        distanceText: formatDistance(distToEndOfStep || currentStep.distanceMeters, this.currentLanguage)
       });
     }
 
@@ -360,6 +402,9 @@ export class NavigationManager {
     this.onOffRoute();
 
     try {
+      if (languageCode) {
+        this.setLanguage(languageCode);
+      }
       if (!this.currentPosition) return;
       const response = await fetch("/api/navigation/route", {
         method: "POST",
@@ -367,7 +412,7 @@ export class NavigationManager {
         body: JSON.stringify({
           origin: this.currentPosition,
           destination: this.destination.name || this.destination.address,
-          language: languageCode
+          language: languageCode || this.currentLanguage
         })
       });
 
@@ -378,8 +423,8 @@ export class NavigationManager {
         this.lastSpokenStepIndex = 0;
         this.lastInstructionTime = Date.now();
 
-        const formattedDist = formatDistance(data.distanceMeters);
-        const formattedDur = formatDuration(data.duration);
+        const formattedDist = formatDistance(data.distanceMeters, this.currentLanguage);
+        const formattedDur = formatDuration(data.duration, this.currentLanguage);
 
         this.onStateChange({
           isNavigating: true,

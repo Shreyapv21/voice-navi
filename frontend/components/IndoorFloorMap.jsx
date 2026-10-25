@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useLanguage } from "../utils/LanguageContext.jsx";
 
 const TYPE_COLORS = {
   entrance: "#4facfe",
@@ -24,6 +25,7 @@ export function IndoorFloorMap({
   destinationLocationId,
   selectedFloorId
 }) {
+  const { t } = useLanguage();
   const floorNodes = useMemo(
     () => (nodes || []).filter((n) => n.floorId === selectedFloorId),
     [nodes, selectedFloorId]
@@ -47,7 +49,7 @@ export function IndoorFloorMap({
   if (!floor) {
     return (
       <div className="indoor-map-empty" role="status">
-        Select a floor to view the map.
+        {t("select_locations_prompt")}
       </div>
     );
   }
@@ -100,10 +102,10 @@ export function IndoorFloorMap({
         })}
       </svg>
       <ul className="indoor-map-legend" aria-label="Map legend">
-        <li><span className="legend-dot legend-current" /> Current location</li>
-        <li><span className="legend-dot legend-dest" /> Destination</li>
-        <li><span className="legend-line legend-route" /> Calculated route</li>
-        <li><span className="legend-line legend-walk" /> Walkable path</li>
+        <li><span className="legend-dot legend-current" /> {t("current_location")}</li>
+        <li><span className="legend-dot legend-dest" /> {t("destination")}</li>
+        <li><span className="legend-line legend-route" /> {t("btn_preview_route")}</li>
+        <li><span className="legend-line legend-walk" /> {t("building")}</li>
       </ul>
     </div>
   );

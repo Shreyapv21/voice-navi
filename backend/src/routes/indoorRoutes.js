@@ -158,4 +158,40 @@ router.post("/marker/resolve", (req, res) => {
   }
 });
 
+// SLAM proxy endpoints to AI service
+const axios = require("axios");
+const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:8000";
+
+router.get("/slam/status", async (req, res) => {
+  try {
+    const resp = await axios.get(`${AI_BASE_URL}/slam/status/`, { timeout: 5000 });
+    res.json(resp.data);
+  } catch (err) {
+    res.status(200).json({
+      status: "unconnected",
+      message: "AI SLAM service unavailable: " + err.message,
+      confidence: 0,
+      map: { nodes: [], edges: [], landmarks: [] }
+    });
+  }
+});
+
+router.post("/slam/reset", async (req, res) => {
+  try {
+    const resp = await axios.post(`${AI_BASE_URL}/slam/reset/`, {}, { timeout: 5000 });
+    res.json(resp.data);
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+router.post("/slam/route", async (req, res) => {
+  try {
+    const resp = await axios.post(`${AI_BASE_URL}/slam/route/`, req.body, { timeout: 5000 });
+    res.json(resp.data);
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 module.exports = router;

@@ -6,8 +6,8 @@ const Tesseract = require("tesseract.js");
 const AI_BASE_URL = "http://127.0.0.1:8000"; // FastAPI server
 
 // Text-to-Speech
-async function textToSpeech(text) {
-  const response = await axios.post(`${AI_BASE_URL}/tts/`, { text });
+async function textToSpeech(text, lang = "en-US", voice = null) {
+  const response = await axios.post(`${AI_BASE_URL}/tts/`, { text, lang, voice });
   return response.data;
 }
 

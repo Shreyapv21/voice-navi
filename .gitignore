@@ -14,3 +14,23 @@ venv/
 
 # Build
 frontend/build/
+
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Node dependencies and build output
+node_modules/
+dist/
+build/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Generated TTS audio
+uploads/*.mp3
