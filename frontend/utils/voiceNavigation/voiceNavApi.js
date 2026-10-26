@@ -1,10 +1,10 @@
 const BASE = "/api/indoor";
 
-export async function matchDestination(query) {
+export async function matchDestination(query, options = {}) {
   const res = await fetch(`${BASE}/match-destination`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query })
+    body: JSON.stringify({ query, ...options })
   });
   return res.json();
 }

@@ -1,5 +1,31 @@
 // frontend/App.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  IconWorld,
+  IconHelp,
+  IconMicrophone,
+  IconPlayerStop,
+  IconPlayerPlay,
+  IconCompass,
+  IconBook,
+  IconRotateClockwise,
+  IconVolume,
+  IconSquareX,
+  IconWalk,
+  IconSatellite,
+  IconBuilding,
+  IconRefresh,
+  IconPlayerTrackNext,
+  IconCamera,
+  IconInfoCircle,
+  IconTools,
+  IconChevronDown,
+  IconEye,
+  IconCrosshair,
+  IconX,
+  IconBolt,
+  IconMapPin
+} from "@tabler/icons-react";
 import {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE,
@@ -13,11 +39,20 @@ import { LanguageProvider, useLanguage } from "./utils/LanguageContext.jsx";
 import { SpeechController } from "./utils/speechController";
 import { NavigationManager, formatDistance, formatDuration } from "./utils/navigationManager";
 import { IndoorNavigationPanel } from "./components/IndoorNavigationPanel.jsx";
-import { VoiceNavigationExperience } from "./components/VoiceNavigationExperience.jsx";
 import { OutdoorMap } from "./components/OutdoorMap.jsx";
 import { IndoorNavigationManager } from "./utils/indoor/indoorNavigationManager.js";
+import { VoiceNavigationOrchestrator } from "./utils/voiceNavigation/VoiceNavigationOrchestrator.js";
 
 const backendURL = "";
+
+// Demo coordinates for offline testing under Advanced Tools only
+const DEMO_TEST_ORIGIN = {
+  latitude: 12.3086,
+  longitude: 76.6531,
+  accuracy: 5,
+  isDemo: true,
+  label: "Demo Origin (Sayyaji Rao Road, Mysuru)"
+};
 
 function AppContent() {
   const { t, language, setLanguage } = useLanguage();
@@ -28,7 +63,6 @@ function AppContent() {
   const [sttResult, setSttResult] = useState("");
   const [ttsText, setTtsText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [activeTab, setActiveTab] = useState("home");
 
   // ---------------- Live Detection States ----------------
   const [detectionState, setDetectionState] = useState("CAMERA_OFF");
@@ -59,6 +93,9 @@ function AppContent() {
   const [indoorUiSync, setIndoorUiSync] = useState(null);
   const [voiceNavSessionActive, setVoiceNavSessionActive] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("IDLE"); // IDLE | LOCATING | ACTIVE | DENIED | UNAVAILABLE | TIMEOUT
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isAdvancedToolsOpen, setIsAdvancedToolsOpen] = useState(false);
 
   // ---------------- Refs for Hardware & Singletons ----------------
   const videoRef = useRef(null);
@@ -521,6 +558,56 @@ function AppContent() {
   };
   handleVoiceCommandRef.current = handleVoiceCommand;
 
+  // ---------------- Real Geolocation Acquisition ----------------
+  const requestDeviceLocation = useCallback((silent = false) => {
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("UNAVAILABLE");
+      if (!silent) speakTextRef.current?.(t("gps_unavailable"));
+      return;
+    }
+
+    setLocationStatus("LOCATING");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          isDemo: false
+        };
+        setUserLocation(coords);
+        setLocationStatus("ACTIVE");
+        if (navigationManagerRef.current) {
+          navigationManagerRef.current.currentPosition = coords;
+          navigationManagerRef.current.isDemoLocation = false;
+        }
+        if (!silent) {
+          speakTextRef.current?.(t("gps_available"));
+        }
+      },
+      (err) => {
+        let status = "UNAVAILABLE";
+        let spokenMsg = t("gps_unavailable");
+        if (err.code === 1) { // PERMISSION_DENIED
+          status = "DENIED";
+          spokenMsg = t("gps_permission_required");
+        } else if (err.code === 2) { // POSITION_UNAVAILABLE
+          status = "UNAVAILABLE";
+          spokenMsg = t("gps_unavailable");
+        } else if (err.code === 3) { // TIMEOUT
+          status = "TIMEOUT";
+          spokenMsg = t("gps_timeout");
+        }
+        setLocationStatus(status);
+        console.warn("Geolocation acquisition error:", err.message);
+        if (!silent) {
+          speakTextRef.current?.(spokenMsg);
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 }
+    );
+  }, [t]);
+
   // ---------------- Initialize Singletons on Mount ----------------
   useEffect(() => {
     // 1. Initialize Speech Controller
@@ -550,6 +637,9 @@ function AppContent() {
         }));
         if (state.currentPosition) {
           setUserLocation(state.currentPosition);
+          if (!state.currentPosition.isDemo) {
+            setLocationStatus("ACTIVE");
+          }
         }
         if (state.status === "ACTIVE" && state.isNavigating) {
           resumeLiveDetectionRef.current?.();
@@ -586,8 +676,9 @@ function AppContent() {
         if (errType === "API_KEY_UNCONFIGURED") {
           speakTextRef.current?.(getMessage("navApiKeyMissing", selectedLanguageRef.current));
           setNavigationState((prev) => ({ ...prev, status: "UNCONFIGURED" }));
-        } else if (errType === "LOCATION_ERROR") {
-          speakTextRef.current?.(getMessage("navGeoError", selectedLanguageRef.current));
+        } else if (errType === "LOCATION_ERROR" || (errType && errType.startsWith("LOCATION_"))) {
+          setLocationStatus("UNAVAILABLE");
+          speakTextRef.current?.(errMsg || getMessage("navGeoError", selectedLanguageRef.current));
           setNavigationState((prev) => ({ ...prev, status: "ERROR", errorMessage: errMsg }));
         } else {
           speakTextRef.current?.(errMsg || "Navigation error occurred.");
@@ -623,20 +714,8 @@ function AppContent() {
     };
     window.addEventListener("keydown", handleKeyDown);
 
-    // Initial GPS location fetch
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserLocation({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy: pos.coords.accuracy
-          });
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    }
+    // Initial real GPS location fetch
+    requestDeviceLocation(true);
 
     if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -657,6 +736,7 @@ function AppContent() {
         navigationManagerRef.current.stopNavigation(true);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update speech controller language whenever context language changes
@@ -1133,9 +1213,6 @@ function AppContent() {
     const destName = typeof destinationQuery === "object"
       ? (destinationQuery.name || "Selected Destination")
       : destinationQuery.trim();
-    if (!destName) return;
-
-    setActiveTab("dashboard");
     setManualDestination(destName);
     setNavigationMode("outdoor");
     navigationModeRef.current = "outdoor";
@@ -1225,654 +1302,82 @@ function AppContent() {
     }
   };
 
-  // ---------------- UI Renderers ----------------
-  const renderHome = () => (
-    <main className="home-container" role="main">
-      <div className="hero-icon" aria-hidden="true">👁️</div>
-      <h1 className="hero-title">{t("hero_title")}</h1>
-      <p className="hero-subtitle">{t("hero_subtitle")}</p>
-      <button
-        className="cta-button"
-        onClick={() => {
-          setActiveTab("dashboard");
-          speakText(t("messages.onboarding"));
-        }}
-        aria-label={t("get_started")}
-      >
-        {t("get_started")}
-      </button>
-    </main>
-  );
+  // ---------------- Voice Orchestrator Lifecycle ----------------
+  useEffect(() => {
+    voiceOrchestratorRef.current = new VoiceNavigationOrchestrator({
+      ...orchestratorDeps,
+      setLanguage: (code) => setLanguage(code),
+      speak: (text, meta) => speakText(text, meta?.customLang),
+      isSpeaking: () => isSpeakingRef?.current,
+      onStateChange: ({ sessionActive: active, error }) => {
+        setVoiceNavSessionActive(!!active);
+        voiceNavSessionActiveRef.current = !!active;
+        if (error) setSpeechError(error);
+      },
+      startListening: () => {
+        const started = speechControllerRef.current?.startListening();
+        if (started) setSpeechError("");
+        return started;
+      },
+      stopListening: (user) => {
+        speechControllerRef.current?.stopListening(user !== false);
+        setVoiceNavSessionActive(false);
+        voiceNavSessionActiveRef.current = false;
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const renderDashboard = () => (
-    <div className="dashboard" role="region" aria-label={t("dashboard")}>
-      <header className="dashboard-header">
-        <h1 className="dashboard-title" id="voice-nav-heading">
-          {t("app_name")} — {t("dashboard")}
-        </h1>
-      </header>
+  // Master Voice Toggle: synchronizes speech controller & orchestrator session
+  const toggleVoiceSession = async () => {
+    setSpeechError("");
+    if (isVoiceControlActive || voiceNavSessionActive) {
+      speechControllerRef.current?.stopListening(true);
+      voiceOrchestratorRef.current?.disableSession();
+      setIsVoiceControlActive(false);
+      setVoiceNavSessionActive(false);
+      voiceNavSessionActiveRef.current = false;
+      speakText(t("messages.voiceControlDisabled"));
+    } else {
+      setVoiceNavSessionActive(true);
+      voiceNavSessionActiveRef.current = true;
+      voiceOrchestratorRef.current?.enableSession();
+      const started = speechControllerRef.current?.startListening();
+      if (started) {
+        setSpeechError("");
+        speakText(t("messages.voiceControlEnabled"));
+      } else {
+        setVoiceNavSessionActive(false);
+        voiceNavSessionActiveRef.current = false;
+      }
+    }
+  };
 
-      {/* Accessible Top Bar: Language & Master Voice Control */}
-      <div className="controls-topbar" role="toolbar" aria-label={t("toolbar_label")}>
-        <div className="lang-selector-group">
-          <label htmlFor="language-select" className="lang-label">
-            🌐 {t("language")}:
-          </label>
-          <select
-            id="language-select"
-            className="lang-select"
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            aria-label={t("select_language")}
-          >
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.flag} {lang.name} ({lang.nativeName})
-              </option>
-            ))}
-          </select>
-        </div>
+  const handleFallbackSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const query = manualDestination.trim();
+    if (!query) return;
 
-        <div>
-          <button
-            onClick={toggleVoiceControl}
-            className={`primary-btn ${isVoiceControlActive ? "danger-btn" : "success-btn"}`}
-            aria-label={isVoiceControlActive ? t("stop_voice_listening") : t("enable_voice_commands")}
-          >
-            <div
-              className="pulse-dot"
-              style={{ background: isVoiceControlActive ? "#ff4757" : "#2ed573" }}
-              aria-hidden="true"
-            />
-            {isVoiceControlActive ? t("stop_voice_listening") : t("enable_voice_commands")}
-            <span style={{ fontSize: "0.8rem", opacity: 0.8, marginLeft: "4px" }}>(Alt+V)</span>
-          </button>
-        </div>
-      </div>
+    if (voiceOrchestratorRef.current) {
+      if (!voiceNavSessionActive) {
+        await voiceOrchestratorRef.current.enableSession();
+      }
+      await voiceOrchestratorRef.current.processTranscript(query);
+    } else {
+      initiateNavigation(query);
+    }
+  };
 
-      {/* Live Voice Status Region */}
-      {isVoiceControlActive && (
-        <div
-          className="result-box"
-          style={{ borderColor: "#667eea", background: "rgba(102, 126, 234, 0.1)", marginBottom: "25px" }}
-          aria-live="polite"
-        >
-          <div className="result-title" style={{ color: "#a5b4fc" }}>
-            🎤 {t("voice_control_active")} ({SUPPORTED_LANGUAGES.find((l) => l.code === language)?.name}):
-          </div>
-          <div className="result-content">
-            {liveTranscript ? (
-              <span>
-                {t("heard")}: "{liveTranscript}"
-              </span>
-            ) : (
-              <span>{t("listening_for_commands")}</span>
-            )}
-          </div>
-          {lastExecutedCommand && (
-            <div style={{ marginTop: "6px", fontSize: "0.95rem", color: "#4facfe" }}>
-              ⚡ {t("last_action")}: <strong>{lastExecutedCommand}</strong>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Spoken / Recognized Voice Error */}
-      {speechError && (
-        <div
-          className="result-box"
-          style={{ borderColor: "#f44336", color: "#f44336", marginBottom: "25px" }}
-          aria-live="assertive"
-          role="alert"
-        >
-          ⚠️ {speechError}
-        </div>
-      )}
-
-      {/* Primary Voice-First Navigation Experience (Phase 2 Onboarding & Session) */}
-      <VoiceNavigationExperience
-        speakText={speakText}
-        speechSupported={
-          !!(typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition))
-        }
-        onEnableListening={() => {
-          const started = speechControllerRef.current?.startListening();
-          if (started) setSpeechError("");
-          return started;
-        }}
-        onDisableListening={(userInitiated) => {
-          speechControllerRef.current?.stopListening(userInitiated !== false);
-          setVoiceNavSessionActive(false);
-          voiceNavSessionActiveRef.current = false;
-        }}
-        isListening={isVoiceControlActive}
-        isSpeakingRef={isSpeakingRef}
-        orchestratorDeps={orchestratorDeps}
-        onOrchestratorReady={(orch) => {
-          voiceOrchestratorRef.current = orch;
-        }}
-        onSessionChange={({ sessionActive }) => {
-          setVoiceNavSessionActive(!!sessionActive);
-          voiceNavSessionActiveRef.current = !!sessionActive;
-        }}
-      />
-
-      {/* Walking / Indoor Voice Navigation Card (Phases 4, 5, 6) */}
-      <section className="feature-card" aria-label={t("nav_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">🚶</div>
-          <div>
-            <h2 className="card-title">{t("nav_title")}</h2>
-            <p style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.95rem", marginTop: "4px" }}>
-              {t("nav_subtitle")}
-            </p>
-          </div>
-        </div>
-
-        <div className="nav-mode-toggle" role="tablist" aria-label="Navigation mode">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={navigationMode === "outdoor"}
-            className={`nav-mode-btn ${navigationMode === "outdoor" ? "active" : ""}`}
-            onClick={() => setNavigationMode("outdoor")}
-          >
-            {t("mode_outdoor")}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={navigationMode === "indoor"}
-            className={`nav-mode-btn ${navigationMode === "indoor" ? "active" : ""}`}
-            onClick={() => setNavigationMode("indoor")}
-          >
-            {t("mode_indoor")}
-          </button>
-        </div>
-
-        {navigationMode === "outdoor" ? (
-          <>
-            <p style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.95rem", marginTop: "8px" }}>
-              {t("outdoor_prompt")}
-            </p>
-            <div className="nav-input-row">
-              <input
-                type="text"
-                className="nav-input"
-                placeholder={t("destination_input_placeholder")}
-                value={manualDestination}
-                onChange={(e) => setManualDestination(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && initiateNavigation(manualDestination)}
-                aria-label={t("destination_input_aria")}
-              />
-              <button
-                onClick={() => initiateNavigation(manualDestination)}
-                className="primary-btn"
-                disabled={!manualDestination.trim()}
-                aria-label={t("btn_navigate")}
-              >
-                {t("btn_navigate")}
-              </button>
-              {navigationState.isNavigating && (
-                <button
-                  onClick={stopNavigation}
-                  className="primary-btn danger-btn"
-                  aria-label={t("btn_stop_nav")}
-                >
-                  {t("btn_stop_nav")}
-                </button>
-              )}
-            </div>
-
-            {/* Real Outdoor Map Component (Phase 4) */}
-            <OutdoorMap
-              userLocation={userLocation}
-              destinationLocation={navigationState.destination?.location}
-              destinationName={navigationState.destination?.name}
-              destinationAddress={navigationState.destination?.address}
-              routeData={navigationState.routeData}
-              currentStepIndex={navigationState.currentStepIndex}
-              isNavigating={navigationState.isNavigating}
-              status={navigationState.status}
-              errorMessage={navigationState.errorMessage}
-              detectionState={detectionState}
-              liveDetections={liveDetections}
-              onSelectCategory={(categoryQuery) => {
-                setManualDestination(categoryQuery);
-                initiateNavigation(categoryQuery);
-              }}
-              onSelectDestination={(dest) => {
-                const label = dest.name || `${dest.latitude.toFixed(4)}, ${dest.longitude.toFixed(4)}`;
-                setManualDestination(label);
-                initiateNavigation(dest);
-              }}
-              onUseDemoLocation={(demoOrigin) => {
-                setUserLocation(demoOrigin);
-                speakText(t("messages.demoGpsSet"));
-              }}
-              onNextStep={() => {
-                navigationManagerRef.current?.nextStep();
-              }}
-              onRepeatInstruction={() => {
-                navigationManagerRef.current?.repeatInstruction();
-              }}
-            />
-
-            {navigationState.isNavigating && (
-              <div
-                className="result-box"
-                style={{ borderColor: "#4facfe", background: "rgba(79, 172, 254, 0.1)", marginTop: "14px" }}
-                aria-live="polite"
-              >
-                <div className="result-title" style={{ color: "#00f2fe" }}>
-                  🚶 {t("navigating_to")} {navigationState.destination?.name || t("destination")}
-                </div>
-                <div className="result-content">
-                  {navigationState.destination?.address && (
-                    <div style={{ fontSize: "0.95rem", opacity: 0.8, marginBottom: "8px" }}>
-                      📍 {navigationState.destination.address}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", margin: "10px 0" }}>
-                    <div>
-                      <strong>{t("remaining_distance")}</strong>{" "}
-                      {navigationState.formattedDistance || t("calculating")}
-                    </div>
-                    <div>
-                      <strong>{t("estimated_time")}</strong>{" "}
-                      {navigationState.formattedDuration || t("calculating")}
-                    </div>
-                  </div>
-
-                  {navigationState.currentStep && (
-                    <div
-                      style={{
-                        background: "rgba(255, 255, 255, 0.08)",
-                        padding: "14px 18px",
-                        borderRadius: "10px",
-                        marginTop: "12px",
-                        borderLeft: "4px solid #00f2fe"
-                      }}
-                    >
-                      <div style={{ fontSize: "0.9rem", color: "#a5b4fc" }}>{t("current_spoken_step")}</div>
-                      <div style={{ fontSize: "1.2rem", fontWeight: 600, marginTop: "4px" }}>
-                        {navigationState.currentStep.instruction}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <IndoorNavigationPanel
-            speakText={speakText}
-            onStopOutdoorSpeech={() => {
-              if (window.speechSynthesis) window.speechSynthesis.cancel();
-            }}
-            sharedManagerRef={indoorNavigationManagerRef}
-            uiSync={indoorUiSync}
-            onMarkerApplied={(marker) => {
-              console.log("Marker applied:", marker);
-            }}
-            voiceOrchestratorRef={voiceOrchestratorRef}
-            slamControlRef={slamControlRef}
-          />
-        )}
-      </section>
-
-      {/* Accessible Voice Commands Reference Card */}
-      <section className="feature-card" aria-label={t("supported_commands_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">🗣️</div>
-          <div>
-            <h2 className="card-title">{t("supported_commands_title")}</h2>
-            <p style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.95rem", marginTop: "4px" }}>
-              {t("supported_commands_subtitle")}
-            </p>
-          </div>
-        </div>
-
-        <div className="commands-grid">
-          <button
-            className="command-btn"
-            onClick={() => handleVoiceCommand({ type: "START_LIVE_DETECTION" })}
-            aria-label={t("cmd_start_detection")}
-          >
-            <span className="command-icon">▶️</span>
-            <div>
-              <strong>{t("cmd_start_detection")}</strong>
-              <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>{t("cmd_start_detection_desc")}</div>
-            </div>
-          </button>
-
-          <button
-            className="command-btn"
-            onClick={() => handleVoiceCommand({ type: "STOP_LIVE_DETECTION" })}
-            aria-label={t("cmd_stop_detection")}
-          >
-            <span className="command-icon">⏹️</span>
-            <div>
-              <strong>{t("cmd_stop_detection")}</strong>
-              <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>{t("cmd_stop_detection_desc")}</div>
-            </div>
-          </button>
-
-          <button
-            className="command-btn"
-            onClick={() => handleVoiceCommand({ type: "DESCRIBE_AROUND" })}
-            aria-label={t("cmd_what_around")}
-          >
-            <span className="command-icon">🧭</span>
-            <div>
-              <strong>{t("cmd_what_around")}</strong>
-              <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>{t("cmd_what_around_desc")}</div>
-            </div>
-          </button>
-
-          <button
-            className="command-btn"
-            onClick={() => handleVoiceCommand({ type: "READ_TEXT" })}
-            aria-label={t("cmd_read_text")}
-          >
-            <span className="command-icon">📖</span>
-            <div>
-              <strong>{t("cmd_read_text")}</strong>
-              <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>{t("cmd_read_text_desc")}</div>
-            </div>
-          </button>
-
-          <button
-            className="command-btn"
-            onClick={() => speakText(t("messages.help"))}
-            aria-label={t("cmd_help")}
-          >
-            <span className="command-icon">❓</span>
-            <div>
-              <strong>{t("cmd_help")}</strong>
-              <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>{t("cmd_help_desc")}</div>
-            </div>
-          </button>
-
-          <button
-            className="command-btn"
-            onClick={() => handleVoiceCommand({ type: "STOP_NAVIGATION" })}
-            aria-label={t("cmd_stop_nav")}
-          >
-            <span className="command-icon">🛑</span>
-            <div>
-              <strong>{t("cmd_stop_nav")}</strong>
-              <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>{t("cmd_stop_nav_desc")}</div>
-            </div>
-          </button>
-        </div>
-      </section>
-
-      {/* Live Object Detection Card */}
-      <section className="feature-card" aria-label={t("live_detection_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">📸</div>
-          <h2 className="card-title">{t("live_detection_title")}</h2>
-        </div>
-
-        {/* Live Status Region */}
-        <div style={{ marginBottom: "18px" }} aria-live="polite">
-          <span
-            className={
-              detectionState === "DETECTING" || detectionState === "PROCESSING"
-                ? "status-badge status-active"
-                : detectionState === "STARTING"
-                ? "status-badge status-processing"
-                : "status-badge status-inactive"
-            }
-          >
-            <div
-              className="pulse-dot"
-              style={{
-                background:
-                  detectionState === "DETECTING"
-                    ? "#4caf50"
-                    : detectionState === "PROCESSING"
-                    ? "#ff9800"
-                    : detectionState === "STARTING"
-                    ? "#00f2fe"
-                    : "#f44336"
-              }}
-            />
-            {t("status_label")}: {detectionState}
-          </span>
-        </div>
-
-        {cameraError && (
-          <div
-            className="result-box"
-            style={{ borderColor: "#f44336", color: "#f44336", marginBottom: "15px" }}
-            aria-live="assertive"
-            role="alert"
-          >
-            ⚠️ {cameraError}
-          </div>
-        )}
-
-        <div
-          style={{
-            margin: "15px 0",
-            display:
-              detectionState === "DETECTING" ||
-              detectionState === "PROCESSING" ||
-              detectionState === "STARTING" ||
-              detectionState === "PAUSED"
-                ? "block"
-                : "none"
-          }}
-        >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: "100%", maxHeight: "400px", borderRadius: "12px", background: "#000" }}
-            aria-label="Camera feed for obstacle detection"
-          />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "10px 0" }}>
-          {detectionState !== "DETECTING" &&
-          detectionState !== "PROCESSING" &&
-          detectionState !== "STARTING" ? (
-            <button
-              onClick={startLiveDetection}
-              className="primary-btn success-btn"
-              aria-label={t("btn_start_live")}
-            >
-              {t("btn_start_live")}
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={stopLiveDetection}
-                className="primary-btn danger-btn"
-                aria-label={t("btn_stop_live")}
-              >
-                {t("btn_stop_live")}
-              </button>
-              <button
-                onClick={captureFrameForOCR}
-                className="primary-btn accent-btn"
-                aria-label={t("btn_read_signboard")}
-              >
-                {t("btn_read_signboard")}
-              </button>
-              <button
-                onClick={describeSurroundings}
-                className="primary-btn"
-                aria-label={t("btn_what_front")}
-              >
-                {t("btn_what_front")}
-              </button>
-            </>
-          )}
-        </div>
-
-        {liveDetections.length > 0 && (
-          <div className="result-box" aria-live="polite">
-            <div className="result-title">{t("current_detections_title")}</div>
-            <ul className="detection-list">
-              {liveDetections.map((obj, i) => (
-                <li key={i} className="detection-item">
-                  <strong>{translateObjectLabel(obj.class_name, language)}</strong>
-                  {obj.distance && ` - ${obj.distance}${t("meters_away")}`}
-                  {obj.direction && ` - ${translateDirection(obj.direction, language)}`}
-                  {obj.confidence && ` (${(obj.confidence * 100).toFixed(1)}%)`}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {(detectionState === "DETECTING" || detectionState === "PROCESSING") &&
-          liveDetections.length === 0 && (
-            <div className="result-box" aria-live="polite">
-              <div
-                className="result-content"
-                style={{ textAlign: "center", color: "rgba(255, 255, 255, 0.6)" }}
-              >
-                {t("monitoring_no_obstacles")}
-              </div>
-            </div>
-          )}
-      </section>
-
-      {/* OCR Card (Single Image / Upload) */}
-      <section className="feature-card" aria-label={t("ocr_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">📖</div>
-          <h2 className="card-title">{t("ocr_title")}</h2>
-        </div>
-
-        <div className="file-input-wrapper">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleOCR}
-            id="ocr-input"
-            aria-label={t("ocr_upload_label")}
-          />
-          <label htmlFor="ocr-input" className="file-input-label">
-            {t("ocr_upload_label")}
-          </label>
-        </div>
-
-        {ocrResult && (
-          <div className="result-box" aria-live="polite">
-            <div className="result-title">{t("extracted_text_title")}</div>
-            <div className="result-content">{ocrResult}</div>
-          </div>
-        )}
-      </section>
-
-      {/* Object Detection Card (Static Image Upload) */}
-      <section className="feature-card" aria-label={t("static_detect_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">👁️</div>
-          <h2 className="card-title">{t("static_detect_title")}</h2>
-        </div>
-
-        <div className="file-input-wrapper">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleObjectDetection}
-            id="object-input"
-            aria-label={t("static_upload_label")}
-          />
-          <label htmlFor="object-input" className="file-input-label">
-            {t("static_upload_label")}
-          </label>
-        </div>
-
-        {objectResult.length > 0 && (
-          <div className="result-box" aria-live="polite">
-            <div className="result-title">{t("detected_objects_title")}</div>
-            <ul className="detection-list">
-              {objectResult.map((obj, i) => (
-                <li key={i} className="detection-item">
-                  <strong>{translateObjectLabel(obj.class_name, language)}</strong> -{" "}
-                  {(obj.confidence * 100).toFixed(1)}% {t("confidence_label")}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
-
-      {/* Speech to Text Card */}
-      <section className="feature-card" aria-label={t("stt_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">🎤</div>
-          <h2 className="card-title">{t("stt_title")}</h2>
-        </div>
-
-        {isRecording && (
-          <div className="result-box" style={{ borderColor: "#f44336", margin: "10px 0" }} aria-live="polite">
-            <div className="pulse-dot" style={{ background: "#f44336", display: "inline-block", marginRight: "8px" }} />
-            {t("recording_in_progress")}
-          </div>
-        )}
-
-        {!isRecording ? (
-          <button
-            onClick={handleStartRecording}
-            className="primary-btn"
-            aria-label={t("btn_start_recording")}
-          >
-            {t("btn_start_recording")}
-          </button>
-        ) : (
-          <button
-            onClick={handleStopRecording}
-            className="primary-btn danger-btn"
-            aria-label={t("btn_stop_recording")}
-          >
-            {t("btn_stop_recording")}
-          </button>
-        )}
-
-        {sttResult && (
-          <div className="result-box" aria-live="polite">
-            <div className="result-title">{t("transcribed_text_title")}</div>
-            <div className="result-content">{sttResult}</div>
-          </div>
-        )}
-      </section>
-
-      {/* Text to Speech Card */}
-      <section className="feature-card" aria-label={t("tts_title")}>
-        <div className="card-header">
-          <div className="card-icon" aria-hidden="true">🔊</div>
-          <h2 className="card-title">{t("tts_title")}</h2>
-        </div>
-
-        <textarea
-          className="textarea-custom"
-          placeholder={t("tts_placeholder")}
-          value={ttsText}
-          onChange={(e) => setTtsText(e.target.value)}
-          aria-label={t("tts_placeholder")}
-        />
-
-        <button
-          onClick={handleTTS}
-          className="primary-btn"
-          style={{ marginTop: "12px" }}
-          aria-label={t("btn_speak_text")}
-        >
-          {t("btn_speak_text")}
-        </button>
-      </section>
-    </div>
-  );
+  // Esc key listener for Help modal
+  useEffect(() => {
+    const handleModalEsc = (e) => {
+      if (e.key === "Escape" && isHelpOpen) {
+        setIsHelpOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleModalEsc);
+    return () => window.removeEventListener("keydown", handleModalEsc);
+  }, [isHelpOpen]);
 
   return (
     <>
@@ -1884,432 +1389,1462 @@ function AppContent() {
         }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Nirmala UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          background: #0f0f1e;
-          color: white;
+          background: #080a14;
+          color: #f1f5f9;
           overflow-x: hidden;
+          line-height: 1.5;
         }
         :focus-visible {
-          outline: 3px solid #60a5fa !important;
+          outline: 3px solid #38bdf8 !important;
           outline-offset: 3px !important;
         }
         .skip-link {
           position: absolute;
-          top: -60px;
-          left: 10px;
-          background: #2563eb;
+          top: -80px;
+          left: 14px;
+          background: #4f46e5;
           color: #ffffff;
-          padding: 12px 20px;
-          border-radius: 8px;
+          padding: 12px 22px;
+          border-radius: 10px;
           font-weight: 700;
           z-index: 9999;
           text-decoration: none;
           transition: top 0.2s ease;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.4);
         }
         .skip-link:focus {
-          top: 10px;
+          top: 14px;
         }
+
+        /* Ambient app wrapper */
         .app-container {
           min-height: 100vh;
-          background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
-          padding: 20px;
+          background: radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                      radial-gradient(circle at 85% 65%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+                      #080a14;
           position: relative;
         }
-        .app-container::before {
+        .app-shell {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 16px 60px;
+        }
+
+        /* 1. Compact Accessible Header */
+        .app-header {
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+          background: rgba(8, 10, 20, 0.85);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 12px 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .brand-cluster {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .brand-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #6366f1, #38bdf8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+        }
+        .brand-text h1 {
+          font-size: 1.35rem;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          line-height: 1.1;
+        }
+        .brand-tagline {
+          font-size: 0.8rem;
+          color: #94a3b8;
+          font-weight: 500;
+        }
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .lang-select-wrap {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 10px;
+          padding: 6px 10px;
+        }
+        .header-lang-select {
+          background: transparent;
+          border: none;
+          color: #f1f5f9;
+          font-size: 0.92rem;
+          font-weight: 600;
+          cursor: pointer;
+          outline: none;
+        }
+        .header-lang-select option {
+          background: #111428;
+          color: #fff;
+        }
+        .icon-btn {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #f1f5f9;
+          border-radius: 10px;
+          padding: 8px 14px;
+          font-size: 0.92rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s ease;
+        }
+        .icon-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        /* 2. Voice-First Hero Section */
+        .voice-hero-card {
+          background: linear-gradient(180deg, rgba(20, 24, 52, 0.8) 0%, rgba(13, 16, 36, 0.7) 100%);
+          border: 1px solid rgba(99, 102, 241, 0.25);
+          border-radius: 20px;
+          padding: 36px 24px;
+          text-align: center;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+          margin-bottom: 28px;
+          position: relative;
+          overflow: hidden;
+        }
+        .voice-hero-card::before {
           content: '';
+          position: absolute;
+          top: -80px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 320px;
+          height: 160px;
+          background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .hero-prompt-title {
+          font-size: 2.2rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: #ffffff;
+          margin-bottom: 8px;
+        }
+        .hero-prompt-subtitle {
+          font-size: 1.1rem;
+          color: #94a3b8;
+          max-width: 650px;
+          margin: 0 auto 28px;
+        }
+
+        /* Interactive Master Mic Button */
+        .master-mic-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+        .master-mic-btn {
+          position: relative;
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          border: 3px solid rgba(255, 255, 255, 0.15);
+          background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+          color: white;
+          font-size: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 10px 25px rgba(79, 70, 229, 0.45);
+        }
+        .master-mic-btn:hover {
+          transform: scale(1.05);
+          box-shadow: 0 14px 32px rgba(79, 70, 229, 0.6);
+        }
+        .master-mic-btn.active {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          border-color: #fca5a5;
+          box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.25), 0 12px 30px rgba(239, 68, 68, 0.6);
+          animation: micPulse 1.6s infinite ease-in-out;
+        }
+        @keyframes micPulse {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5), 0 10px 25px rgba(239, 68, 68, 0.4); }
+          70% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0), 0 10px 25px rgba(239, 68, 68, 0.4); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 10px 25px rgba(239, 68, 68, 0.4); }
+        }
+        .mic-shortcut-hint {
+          font-size: 0.8rem;
+          color: #94a3b8;
+          margin-top: 10px;
+          font-weight: 500;
+        }
+        .mic-state-pill {
+          margin-top: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 16px;
+          border-radius: 20px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .mic-state-pill.listening {
+          background: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.4);
+          color: #fca5a5;
+        }
+        .mic-state-pill.ready {
+          background: rgba(56, 189, 248, 0.12);
+          border-color: rgba(56, 189, 248, 0.3);
+          color: #38bdf8;
+        }
+
+        /* Hero Live Feedback */
+        .hero-feedback-box {
+          max-width: 650px;
+          margin: 0 auto 20px;
+        }
+        .transcript-bubble {
+          background: rgba(99, 102, 241, 0.12);
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          padding: 12px 18px;
+          border-radius: 12px;
+          font-size: 1rem;
+          color: #e0e7ff;
+          margin-bottom: 8px;
+          text-align: left;
+        }
+        .last-action-bubble {
+          background: rgba(14, 165, 233, 0.1);
+          border: 1px solid rgba(14, 165, 233, 0.25);
+          padding: 8px 14px;
+          border-radius: 10px;
+          font-size: 0.9rem;
+          color: #7dd3fc;
+          text-align: left;
+        }
+        .alert-box {
+          padding: 12px 18px;
+          border-radius: 12px;
+          margin: 12px 0;
+          text-align: left;
+          font-weight: 500;
+        }
+        .alert-error {
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #fca5a5;
+        }
+
+        /* Fallback input bar in hero */
+        .hero-input-form {
+          max-width: 680px;
+          margin: 0 auto;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .hero-text-input {
+          flex: 1;
+          min-width: 260px;
+          background: rgba(15, 23, 42, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 12px;
+          padding: 14px 18px;
+          color: #ffffff;
+          font-size: 1.05rem;
+          transition: border-color 0.2s ease;
+        }
+        .hero-text-input:focus {
+          border-color: #6366f1;
+        }
+        .primary-action-btn {
+          background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+          color: white;
+          border: none;
+          padding: 14px 24px;
+          border-radius: 12px;
+          font-size: 1.02rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .primary-action-btn:hover {
+          opacity: 0.92;
+          transform: translateY(-1px);
+        }
+
+        /* Quick Action Chips */
+        .quick-chips-row {
+          display: flex;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 18px;
+        }
+        .quick-chip {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #cbd5e1;
+          padding: 8px 14px;
+          border-radius: 50px;
+          font-size: 0.88rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .quick-chip:hover {
+          background: rgba(99, 102, 241, 0.15);
+          border-color: rgba(99, 102, 241, 0.4);
+          color: #ffffff;
+        }
+
+        /* 3. Navigation Workspace */
+        .workspace-card {
+          background: rgba(18, 22, 44, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 18px;
+          padding: 24px;
+          margin-bottom: 28px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+        .section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+        .section-title {
+          font-size: 1.35rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .segmented-mode-nav {
+          display: inline-flex;
+          background: rgba(15, 23, 42, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 4px;
+          gap: 4px;
+        }
+        .segmented-mode-btn {
+          border: none;
+          background: transparent;
+          color: #94a3b8;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.92rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .segmented-mode-btn.active {
+          background: #4f46e5;
+          color: white;
+          box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+        }
+
+        /* Real GPS Status Banner */
+        .gps-status-banner {
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 12px 16px;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .gps-info-cluster {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+        .status-dot.active { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        .status-dot.locating { background: #38bdf8; animation: dotPulse 1.2s infinite; }
+        .status-dot.error { background: #ef4444; }
+        .status-dot.inactive { background: #94a3b8; }
+        @keyframes dotPulse {
+          0% { transform: scale(0.8); opacity: 0.5; }
+          50% { transform: scale(1.3); opacity: 1; }
+          100% { transform: scale(0.8); opacity: 0.5; }
+        }
+
+        /* Active Navigation Route Box */
+        .active-route-box {
+          background: rgba(14, 165, 233, 0.08);
+          border: 1px solid rgba(14, 165, 233, 0.25);
+          border-radius: 14px;
+          padding: 18px 20px;
+          margin-top: 18px;
+        }
+        .active-route-meta {
+          display: flex;
+          gap: 20px;
+          flex-wrap: wrap;
+          margin: 10px 0;
+          font-size: 1rem;
+        }
+        .current-step-display {
+          background: rgba(15, 23, 42, 0.6);
+          border-left: 4px solid #38bdf8;
+          border-radius: 10px;
+          padding: 14px 18px;
+          margin-top: 12px;
+        }
+        .route-controls-row {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 14px;
+        }
+
+        /* 4. Live Assistance Section */
+        .live-assistance-card {
+          background: rgba(18, 22, 44, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 18px;
+          padding: 24px;
+          margin-bottom: 28px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+        .assistive-disclaimer {
+          font-size: 0.85rem;
+          color: #94a3b8;
+          margin-bottom: 16px;
+          padding: 8px 12px;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 8px;
+          border-left: 3px solid #6366f1;
+        }
+        .live-camera-wrap {
+          margin: 16px 0;
+          border-radius: 14px;
+          overflow: hidden;
+          background: #000;
+          position: relative;
+        }
+        .camera-video-feed {
+          width: 100%;
+          max-height: 380px;
+          object-fit: cover;
+          display: block;
+        }
+        .action-btn-row {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin: 14px 0;
+        }
+        .secondary-btn {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #f1f5f9;
+          padding: 12px 20px;
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .secondary-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
+        }
+        .danger-action-btn {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+          border: none;
+          padding: 12px 20px;
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        /* 5. Collapsible Advanced Tools */
+        .advanced-tools-card {
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          border-radius: 16px;
+          overflow: hidden;
+          margin-top: 36px;
+        }
+        .advanced-tools-header-btn {
+          width: 100%;
+          background: transparent;
+          border: none;
+          padding: 18px 24px;
+          color: #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+          text-align: left;
+        }
+        .advanced-tools-header-btn:hover {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .advanced-tools-body {
+          padding: 0 24px 24px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .tools-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 16px;
+          margin-top: 16px;
+        }
+        .tool-subcard {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .tool-subcard h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        /* 6. Accessible Voice Commands Help Modal */
+        .modal-backdrop {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
-          pointer-events: none;
-          z-index: 0;
-        }
-        .app-content {
-          position: relative;
-          z-index: 1;
-        }
-        .nav-bar {
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 9999;
           display: flex;
-          justify-content: center;
-          gap: 15px;
-          margin-bottom: 40px;
-          animation: fadeInUp 0.6s ease-out;
-        }
-        .nav-btn {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 12px 30px;
-          border-radius: 50px;
-          color: white;
-          font-size: 1.05rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: inline-flex;
           align-items: center;
-          gap: 10px;
+          justify-content: center;
+          padding: 20px;
         }
-        .nav-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          transform: translateY(-2px);
+        .modal-content-card {
+          background: #0f132a;
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          border-radius: 20px;
+          max-width: 650px;
+          width: 100%;
+          max-height: 85vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+          padding: 28px;
         }
-        .nav-btn.active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-color: transparent;
-          box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
-        .home-container {
-          text-align: center;
-          padding: 80px 20px;
-          animation: fadeInUp 0.8s ease-out;
-        }
-        .hero-icon {
-          font-size: 120px;
-          display: inline-block;
-          margin-bottom: 30px;
-        }
-        .hero-title {
-          font-size: 4rem;
-          font-weight: 700;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          margin-bottom: 20px;
-        }
-        .hero-subtitle {
-          font-size: 1.3rem;
-          color: rgba(255, 255, 255, 0.8);
-          max-width: 700px;
-          margin: 0 auto 50px;
-          line-height: 1.8;
-        }
-        .cta-button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          padding: 18px 45px;
-          border-radius: 50px;
-          color: white;
-          border: none;
-          font-size: 1.3rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-        .cta-button:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
-        }
-        .dashboard {
-          animation: fadeInUp 0.6s ease-out;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        .dashboard-header {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-        .dashboard-title {
-          font-size: 2.8rem;
-          font-weight: 700;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          margin-bottom: 15px;
-        }
-        .controls-topbar {
+        .modal-header {
           display: flex;
-          flex-wrap: wrap;
           align-items: center;
           justify-content: space-between;
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 16px;
-          padding: 18px 24px;
-          margin-bottom: 25px;
-          gap: 15px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding-bottom: 14px;
+          margin-bottom: 20px;
         }
-        .lang-selector-group {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
+        .modal-title {
+          font-size: 1.35rem;
+          font-weight: 700;
         }
-        .lang-label {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.9);
-        }
-        .lang-select {
-          background: #1a1a2e;
-          color: #fff;
-          border: 1px solid rgba(102, 126, 234, 0.5);
-          padding: 10px 16px;
-          border-radius: 10px;
-          font-size: 1.05rem;
-          font-weight: 600;
+        .modal-close-btn {
+          background: rgba(255, 255, 255, 0.08);
+          border: none;
+          color: #f1f5f9;
+          font-size: 1.2rem;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
           cursor: pointer;
-          outline: none;
-        }
-        .lang-select:focus {
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-        }
-        .feature-card {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 20px;
-          padding: 26px;
-          margin-bottom: 25px;
-          transition: all 0.3s ease;
-        }
-        .feature-card:hover {
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-        .card-header {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 18px;
-        }
-        .card-icon {
-          width: 50px;
-          height: 50px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 12px;
-          background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
-          font-size: 28px;
         }
-        .card-title {
-          font-size: 1.4rem;
-          font-weight: 600;
-          margin: 0;
+        .help-category {
+          margin-bottom: 20px;
         }
-        .primary-btn {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          padding: 14px 26px;
-          border-radius: 12px;
-          font-size: 1.05rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          margin: 6px;
-        }
-        .primary-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
-        .danger-btn {
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        .success-btn {
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        .accent-btn {
-          background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-          color: #111;
-        }
-        .file-input-wrapper {
-          position: relative;
-          display: inline-block;
-          margin: 10px 0;
-        }
-        .file-input-wrapper input[type="file"] {
-          position: absolute;
-          opacity: 0;
-          width: 100%;
-          height: 100%;
-          cursor: pointer;
-        }
-        .file-input-label {
-          background: rgba(255, 255, 255, 0.1);
-          border: 2px dashed rgba(255, 255, 255, 0.3);
-          padding: 18px 28px;
-          border-radius: 12px;
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          cursor: pointer;
+        .help-cat-title {
           font-size: 1rem;
-          transition: all 0.3s ease;
-        }
-        .result-box {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 18px;
-          border-radius: 12px;
-          margin-top: 18px;
-        }
-        .result-title {
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.9);
-          margin-bottom: 10px;
-          font-size: 1.1rem;
-        }
-        .result-content {
-          color: rgba(255, 255, 255, 0.85);
-          line-height: 1.6;
-          font-size: 1.05rem;
-        }
-        .detection-list {
-          list-style: none;
-          padding: 0;
-        }
-        .detection-item {
-          background: rgba(255, 255, 255, 0.05);
-          padding: 12px 16px;
-          border-radius: 8px;
+          font-weight: 700;
+          color: #a5b4fc;
           margin-bottom: 8px;
-          border-left: 3px solid #667eea;
-          font-size: 1.05rem;
-        }
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-weight: 600;
-          font-size: 0.95rem;
-        }
-        .status-active {
-          background: rgba(76, 175, 80, 0.2);
-          color: #4caf50;
-        }
-        .status-inactive {
-          background: rgba(244, 67, 54, 0.2);
-          color: #f44336;
-        }
-        .status-processing {
-          background: rgba(255, 152, 0, 0.2);
-          color: #ff9800;
-        }
-        .pulse-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-        }
-        .textarea-custom {
-          width: 100%;
-          min-height: 100px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 15px;
-          color: white;
-          font-size: 1.05rem;
-          font-family: inherit;
-          resize: vertical;
-        }
-        .commands-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 12px;
-          margin-top: 15px;
-        }
-        .command-btn {
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: white;
-          padding: 14px 18px;
-          border-radius: 12px;
-          text-align: left;
-          cursor: pointer;
-          font-size: 1rem;
-          transition: all 0.2s ease;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 6px;
         }
-        .command-btn:hover {
-          background: rgba(102, 126, 234, 0.2);
-          border-color: #667eea;
-          transform: translateY(-2px);
-        }
-        .command-icon {
-          font-size: 1.4rem;
-        }
-        .nav-input-row {
+        .help-command-list {
+          list-style: none;
           display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-top: 10px;
-        }
-        .nav-input {
-          flex: 1;
-          min-width: 250px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 12px;
-          padding: 12px 18px;
-          color: white;
-          font-size: 1.05rem;
-        }
-        .nav-mode-toggle {
-          display: inline-flex;
-          flex-wrap: wrap;
+          flex-direction: column;
           gap: 8px;
-          margin: 12px 0 4px;
-          padding: 6px;
-          border-radius: 14px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.12);
         }
-        .nav-mode-btn {
-          border: 1px solid transparent;
-          background: transparent;
-          color: rgba(255, 255, 255, 0.85);
-          padding: 10px 18px;
-          border-radius: 10px;
+        .help-command-item {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 8px;
+          padding: 8px 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.92rem;
+        }
+        .help-command-item code {
+          color: #38bdf8;
           font-weight: 600;
-          cursor: pointer;
         }
-        .nav-mode-btn.active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+
+        /* Mobile Adjustments */
+        @media (max-width: 640px) {
+          .hero-prompt-title { font-size: 1.7rem; }
+          .hero-prompt-subtitle { font-size: 0.95rem; }
+          .master-mic-btn { width: 78px; height: 78px; font-size: 32px; }
+          .workspace-card, .live-assistance-card, .voice-hero-card { padding: 18px 14px; }
+          .hero-input-form { flex-direction: column; }
+          .primary-action-btn { width: 100%; justify-content: center; }
         }
       `}</style>
 
-      {/* Skip to Content for Screen Readers & Keyboard navigation */}
-      <a href="#voice-nav-heading" className="skip-link">
+      {/* Accessible Skip Link */}
+      <a href="#main-voice-hero" className="skip-link">
         {t("skip_to_content")}
       </a>
 
       <div className="app-container">
-        <div className="app-content">
-          <nav className="nav-bar" role="navigation" aria-label="Main Navigation">
-            <button
-              className={`nav-btn ${activeTab === "home" ? "active" : ""}`}
-              onClick={() => setActiveTab("home")}
-              aria-label={t("home")}
-            >
-              {t("home")}
-            </button>
-            <button
-              className={`nav-btn ${activeTab === "dashboard" ? "active" : ""}`}
-              onClick={() => setActiveTab("dashboard")}
-              aria-label={t("dashboard")}
-            >
-              {t("dashboard")}
-            </button>
-          </nav>
+        {/* Top Header Bar */}
+        <header className="app-header" role="banner">
+          <div className="brand-cluster">
+            <div className="brand-icon" aria-hidden="true">
+              <IconEye size={24} style={{ color: "#38bdf8" }} />
+            </div>
+            <div className="brand-text">
+              <h1>{t("app_name")}</h1>
+              <div className="brand-tagline">{t("app_tagline_refined") || t("app_tagline")}</div>
+            </div>
+          </div>
 
-          {activeTab === "home" ? renderHome() : renderDashboard()}
+          <div className="header-actions">
+            {/* Language Selector */}
+            <div className="lang-select-wrap">
+              <IconWorld size={18} aria-hidden="true" style={{ color: "#94a3b8" }} />
+              <label htmlFor="header-lang-select" className="sr-only" style={{ display: "none" }}>
+                {t("select_language")}
+              </label>
+              <select
+                id="header-lang-select"
+                className="header-lang-select"
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                aria-label={t("select_language")}
+              >
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.name} ({lang.nativeName})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Accessible Voice Help Button */}
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setIsHelpOpen(true)}
+              aria-label={t("help_dialog_title") || "Supported Voice Commands"}
+              aria-haspopup="dialog"
+            >
+              <IconHelp size={18} aria-hidden="true" /> <span>{t("cmd_help") ? t("cmd_help").replace(/"/g, "") : "Help"}</span>
+            </button>
+          </div>
+        </header>
+
+        <div className="app-shell">
+          {/* Main Hero: Voice Navigation Experience */}
+          <section id="main-voice-hero" className="voice-hero-card" aria-label="Voice Navigation Hero">
+            <h2 className="hero-prompt-title">
+              {t("hero_prompt_title") || "Where would you like to go?"}
+            </h2>
+            <p className="hero-prompt-subtitle">
+              {t("hero_prompt_subtitle") || "Speak your destination or ask Dhristi to describe your surroundings."}
+            </p>
+
+            {/* Central Master Microphone Controller */}
+            <div className="master-mic-wrap">
+              <button
+                type="button"
+                className={`master-mic-btn ${isVoiceControlActive ? "active" : ""}`}
+                onClick={toggleVoiceSession}
+                aria-label={isVoiceControlActive ? t("stop_voice_listening") : t("enable_voice_commands")}
+                title={isVoiceControlActive ? "Stop voice listening (Alt+V)" : "Start voice listening (Alt+V)"}
+              >
+                {isVoiceControlActive ? (
+                  <IconPlayerStop size={32} stroke={2.2} aria-hidden="true" />
+                ) : (
+                  <IconMicrophone size={32} stroke={2.2} aria-hidden="true" />
+                )}
+              </button>
+
+              <div
+                className={`mic-state-pill ${isVoiceControlActive ? "listening" : "ready"}`}
+                aria-live="polite"
+              >
+                {isVoiceControlActive
+                  ? `${t("listening_for_commands") || "Listening for commands..."}`
+                  : `${t("mic_off") || "Microphone Off"} — Tap to Speak`}
+              </div>
+              <div className="mic-shortcut-hint">Keyboard shortcut: Alt+V</div>
+            </div>
+
+            {/* Real-time Voice Recognition Feedback */}
+            <div className="hero-feedback-box" aria-live="polite">
+              {liveTranscript && (
+                <div className="transcript-bubble">
+                  <strong>{t("heard")}:</strong> "{liveTranscript}"
+                </div>
+              )}
+              {lastExecutedCommand && (
+                <div className="last-action-bubble">
+                  <IconBolt size={16} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 4 }} />
+                  <strong>{t("last_action")}:</strong> {lastExecutedCommand}
+                </div>
+              )}
+              {speechError && (
+                <div className="alert-box alert-error" role="alert" aria-live="assertive">
+                  <IconInfoCircle size={18} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                  {speechError}
+                </div>
+              )}
+            </div>
+
+            {/* Destination / Command Fallback Input */}
+            <form className="hero-input-form" onSubmit={handleFallbackSubmit}>
+              <input
+                type="text"
+                className="hero-text-input"
+                placeholder={t("destination_input_placeholder")}
+                value={manualDestination}
+                onChange={(e) => setManualDestination(e.target.value)}
+                aria-label={t("destination_input_aria")}
+              />
+              <button
+                type="submit"
+                className="primary-action-btn"
+                disabled={!manualDestination.trim()}
+                aria-label={t("btn_navigate")}
+              >
+                <IconCompass size={18} aria-hidden="true" />
+                <span>{t("btn_navigate")}</span>
+              </button>
+            </form>
+
+            {/* Quick Action Suggestion Chips */}
+            <div className="quick-chips-row" role="group" aria-label="Suggested Voice Commands">
+              <button
+                type="button"
+                className="quick-chip"
+                onClick={() => handleVoiceCommand({ type: "DESCRIBE_AROUND" })}
+              >
+                <IconEye size={16} aria-hidden="true" />
+                <span>{t("cmd_what_around") ? t("cmd_what_around").replace(/"/g, "") : "What is around me?"}</span>
+              </button>
+              <button
+                type="button"
+                className="quick-chip"
+                onClick={() => handleVoiceCommand({ type: "READ_TEXT" })}
+              >
+                <IconBook size={16} aria-hidden="true" />
+                <span>{t("cmd_read_text") ? t("cmd_read_text").replace(/"/g, "") : "Read sign"}</span>
+              </button>
+              <button
+                type="button"
+                className="quick-chip"
+                onClick={() => navigationManagerRef.current?.repeatInstruction()}
+              >
+                <IconRotateClockwise size={16} aria-hidden="true" />
+                <span>{t("cmd_repeat") ? t("cmd_repeat").replace(/"/g, "") : "Repeat instruction"}</span>
+              </button>
+              <button
+                type="button"
+                className="quick-chip"
+                onClick={() => speakText(t("messages.onboarding"))}
+              >
+                <IconVolume size={16} aria-hidden="true" />
+                <span>{t("repeat_onboarding") || "Spoken Guide"}</span>
+              </button>
+              {navigationState.isNavigating && (
+                <button
+                  type="button"
+                  className="quick-chip"
+                  style={{ borderColor: "#f87171", color: "#fca5a5" }}
+                  onClick={stopNavigation}
+                >
+                  <IconSquareX size={16} aria-hidden="true" />
+                  <span>{t("btn_stop_nav")}</span>
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* Navigation Workspace */}
+          <section className="workspace-card" aria-label="Navigation Workspace">
+            <div className="section-header">
+              <div className="section-title">
+                <IconWalk size={22} aria-hidden="true" />
+                <span>{t("nav_title")}</span>
+              </div>
+
+              {/* Segmented Mode Selector */}
+              <div className="segmented-mode-nav" role="tablist" aria-label="Navigation Mode">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={navigationMode === "outdoor"}
+                  className={`segmented-mode-btn ${navigationMode === "outdoor" ? "active" : ""}`}
+                  onClick={() => setNavigationMode("outdoor")}
+                >
+                  <IconSatellite size={16} aria-hidden="true" />
+                  <span>{t("mode_outdoor")}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={navigationMode === "indoor"}
+                  className={`segmented-mode-btn ${navigationMode === "indoor" ? "active" : ""}`}
+                  onClick={() => setNavigationMode("indoor")}
+                >
+                  <IconBuilding size={16} aria-hidden="true" />
+                  <span>{t("mode_indoor")}</span>
+                </button>
+              </div>
+            </div>
+
+            {navigationMode === "outdoor" ? (
+              <>
+                {/* Real GPS Status Banner */}
+                <div className="gps-status-banner" aria-live="polite">
+                  <div className="gps-info-cluster">
+                    <div
+                      className={`status-dot ${
+                        userLocation && !userLocation.isDemo
+                          ? "active"
+                          : locationStatus === "LOCATING"
+                          ? "locating"
+                          : locationStatus === "DENIED" || locationStatus === "UNAVAILABLE"
+                          ? "error"
+                          : "inactive"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <strong>
+                        {locationStatus === "LOCATING"
+                          ? t("gps_locating") || "Locating your position…"
+                          : userLocation?.isDemo
+                          ? t("demo_origin_active") || "Demo GPS Active (Testing Mode)"
+                          : userLocation
+                          ? `${t("gps_available") || "Current location available"} (±${Math.round(userLocation.accuracy || 0)}m)`
+                          : locationStatus === "DENIED"
+                          ? t("gps_permission_required") || "Location permission required"
+                          : locationStatus === "TIMEOUT"
+                          ? t("gps_timeout") || "Location request timed out"
+                          : t("gps_unavailable") || "Location unavailable"}
+                      </strong>
+                      {userLocation && !userLocation.isDemo && (
+                        <div style={{ fontSize: "0.82rem", color: "#94a3b8" }}>
+                          GPS: {userLocation.latitude.toFixed(5)}, {userLocation.longitude.toFixed(5)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => requestDeviceLocation(false)}
+                    aria-label="Refresh real GPS location"
+                  >
+                    <IconRefresh size={16} aria-hidden="true" />
+                    <span>{t("gps_refresh") || "Refresh Location"}</span>
+                  </button>
+                </div>
+
+                {/* Leaflet Outdoor Map */}
+                <OutdoorMap
+                  userLocation={userLocation}
+                  destinationLocation={navigationState.destination?.location}
+                  destinationName={navigationState.destination?.name}
+                  destinationAddress={navigationState.destination?.address}
+                  routeData={navigationState.routeData}
+                  currentStepIndex={navigationState.currentStepIndex}
+                  isNavigating={navigationState.isNavigating}
+                  status={navigationState.status}
+                  errorMessage={navigationState.errorMessage}
+                  detectionState={detectionState}
+                  liveDetections={liveDetections}
+                  locationStatus={locationStatus}
+                  onRequestLocation={() => requestDeviceLocation(false)}
+                  onSelectCategory={(categoryQuery) => {
+                    setManualDestination(categoryQuery);
+                    initiateNavigation(categoryQuery);
+                  }}
+                  onSelectDestination={(dest) => {
+                    const label = dest.name || `${dest.latitude.toFixed(4)}, ${dest.longitude.toFixed(4)}`;
+                    setManualDestination(label);
+                    initiateNavigation(dest);
+                  }}
+                  onNextStep={() => navigationManagerRef.current?.nextStep()}
+                  onRepeatInstruction={() => navigationManagerRef.current?.repeatInstruction()}
+                />
+
+                {/* Active Route Turn-by-Turn Card */}
+                {navigationState.isNavigating && (
+                  <div className="active-route-box" aria-live="polite">
+                    <div style={{ fontSize: "1.1rem", fontWeight: "700", color: "#38bdf8" }}>
+                      <IconWalk size={20} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                      {t("navigating_to")} {navigationState.destination?.name || t("destination")}
+                    </div>
+                    {navigationState.destination?.address && (
+                      <div style={{ fontSize: "0.9rem", color: "#94a3b8", marginTop: "2px" }}>
+                        <IconMapPin size={16} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 4 }} />
+                        {navigationState.destination.address}
+                      </div>
+                    )}
+                    <div className="active-route-meta">
+                      <div>
+                        <strong>{t("remaining_distance")}</strong>{" "}
+                        {navigationState.formattedDistance || t("calculating")}
+                      </div>
+                      <div>
+                        <strong>{t("estimated_time")}</strong>{" "}
+                        {navigationState.formattedDuration || t("calculating")}
+                      </div>
+                    </div>
+
+                    {navigationState.currentStep && (
+                      <div className="current-step-display">
+                        <div style={{ fontSize: "0.85rem", color: "#a5b4fc", fontWeight: 600 }}>
+                          {t("current_spoken_step")}
+                        </div>
+                        <div style={{ fontSize: "1.2rem", fontWeight: 700, marginTop: "4px" }}>
+                          {navigationState.currentStep.instruction}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="route-controls-row">
+                      <button
+                        type="button"
+                        className="primary-action-btn"
+                        onClick={() => navigationManagerRef.current?.nextStep()}
+                        aria-label="Advance to next step"
+                      >
+                        <IconPlayerTrackNext size={18} aria-hidden="true" />
+                        <span>{t("btn_next_step") || "Next Step"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => navigationManagerRef.current?.repeatInstruction()}
+                        aria-label="Repeat last instruction"
+                      >
+                        <IconRotateClockwise size={18} aria-hidden="true" />
+                        <span>{t("cmd_repeat") ? t("cmd_repeat").replace(/"/g, "") : "Repeat"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="danger-action-btn"
+                        onClick={stopNavigation}
+                        aria-label={t("btn_stop_nav")}
+                      >
+                        <IconPlayerStop size={18} aria-hidden="true" />
+                        <span>{t("btn_stop_nav")}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <IndoorNavigationPanel
+                speakText={speakText}
+                onStopOutdoorSpeech={() => {
+                  if (window.speechSynthesis) window.speechSynthesis.cancel();
+                }}
+                sharedManagerRef={indoorNavigationManagerRef}
+                uiSync={indoorUiSync}
+                onMarkerApplied={(marker) => console.log("Marker applied:", marker)}
+                voiceOrchestratorRef={voiceOrchestratorRef}
+                slamControlRef={slamControlRef}
+                ocrText={ocrResult}
+              />
+            )}
+          </section>
+
+          {/* Unified Live Assistance Section */}
+          <section className="live-assistance-card" aria-label="Live Assistance">
+            <div className="section-header">
+              <div className="section-title">
+                <IconCamera size={22} aria-hidden="true" />
+                <span>{t("live_assistance_title") || t("live_detection_title")}</span>
+              </div>
+              <span
+                className={`mic-state-pill ${
+                  detectionState === "DETECTING" || detectionState === "PROCESSING"
+                    ? "listening"
+                    : detectionState === "STARTING"
+                    ? "ready"
+                    : ""
+                }`}
+                aria-live="polite"
+              >
+                {t("status_label")}: {detectionState}
+              </span>
+            </div>
+
+            <div className="assistive-disclaimer" role="note">
+              <IconInfoCircle size={16} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 6 }} />
+              {t("live_assistance_disclaimer") || "Obstacle detection is an assistive aid and does not guarantee an obstacle-free path. Always rely on primary mobility aids."}
+            </div>
+
+            {cameraError && (
+              <div className="alert-box alert-error" role="alert" aria-live="assertive">
+                <IconInfoCircle size={18} aria-hidden="true" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                {cameraError}
+              </div>
+            )}
+
+            {/* Video preview feed when active */}
+            <div
+              className="live-camera-wrap"
+              style={{
+                display:
+                  detectionState === "DETECTING" ||
+                  detectionState === "PROCESSING" ||
+                  detectionState === "STARTING" ||
+                  detectionState === "PAUSED"
+                    ? "block"
+                    : "none"
+              }}
+            >
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="camera-video-feed"
+                aria-label="Live camera feed for obstacle detection"
+              />
+              <canvas ref={canvasRef} style={{ display: "none" }} />
+            </div>
+
+            {/* Control Actions Row */}
+            <div className="action-btn-row">
+              {detectionState !== "DETECTING" &&
+              detectionState !== "PROCESSING" &&
+              detectionState !== "STARTING" ? (
+                <button
+                  type="button"
+                  onClick={startLiveDetection}
+                  className="primary-action-btn"
+                  aria-label={t("btn_start_live")}
+                >
+                  <IconPlayerPlay size={18} aria-hidden="true" />
+                  <span>{t("btn_start_live")}</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={stopLiveDetection}
+                    className="danger-action-btn"
+                    aria-label={t("btn_stop_live")}
+                  >
+                    <IconPlayerStop size={18} aria-hidden="true" />
+                    <span>{t("btn_stop_live")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={captureFrameForOCR}
+                    className="secondary-btn"
+                    aria-label={t("btn_read_signboard")}
+                  >
+                    <IconBook size={18} aria-hidden="true" />
+                    <span>{t("btn_read_signboard")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={describeSurroundings}
+                    className="secondary-btn"
+                    aria-label={t("btn_what_front")}
+                  >
+                    <IconCompass size={18} aria-hidden="true" />
+                    <span>{t("btn_what_front")}</span>
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Live Detected Obstacles List */}
+            {liveDetections.length > 0 && (
+              <div className="active-route-box" style={{ marginTop: 14 }} aria-live="polite">
+                <div style={{ fontSize: "1rem", fontWeight: 700, color: "#38bdf8", marginBottom: 8 }}>
+                  {t("current_detections_title")}
+                </div>
+                <ul style={{ listStyle: "none", padding: 0 }}>
+                  {liveDetections.map((obj, i) => (
+                    <li
+                      key={i}
+                      style={{
+                        background: "rgba(255, 255, 255, 0.05)",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        marginBottom: "6px",
+                        borderLeft: obj.distance && obj.distance < 2 ? "4px solid #ef4444" : "4px solid #38bdf8"
+                      }}
+                    >
+                      <strong>{translateObjectLabel(obj.class_name, language)}</strong>
+                      {obj.distance && ` — ${obj.distance}${t("meters_away")}`}
+                      {obj.direction && ` (${translateDirection(obj.direction, language)})`}
+                      {obj.confidence && ` • ${(obj.confidence * 100).toFixed(0)}%`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          {/* 5. Collapsible Advanced Tools Section */}
+          <section className="advanced-tools-card" aria-label="Advanced Tools">
+            <button
+              type="button"
+              className="advanced-tools-header-btn"
+              onClick={() => setIsAdvancedToolsOpen(!isAdvancedToolsOpen)}
+              aria-expanded={isAdvancedToolsOpen}
+              aria-controls="advanced-tools-panel"
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <IconTools size={22} aria-hidden="true" style={{ color: "#38bdf8", flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>
+                    {t("advanced_tools_title") || "Advanced Tools & Diagnostics"}
+                  </div>
+                  <div style={{ fontSize: "0.82rem", color: "#94a3b8" }}>
+                    {t("advanced_tools_subtitle") || "Manual testing for STT, TTS, static image detection, and simulation."}
+                  </div>
+                </div>
+              </div>
+              <IconChevronDown
+                size={20}
+                aria-hidden="true"
+                style={{
+                  color: "#94a3b8",
+                  transition: "transform 0.2s ease",
+                  transform: isAdvancedToolsOpen ? "rotate(180deg)" : "rotate(0)"
+                }}
+              />
+            </button>
+
+            {isAdvancedToolsOpen && (
+              <div id="advanced-tools-panel" className="advanced-tools-body">
+                <div className="tools-grid">
+                  {/* Tool 1: Manual Speech to Text */}
+                  <div className="tool-subcard">
+                    <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <IconMicrophone size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                      <span>{t("stt_title")}</span>
+                    </h3>
+                    {isRecording ? (
+                      <button type="button" onClick={handleStopRecording} className="danger-action-btn">
+                        <IconPlayerStop size={18} aria-hidden="true" />
+                        <span>{t("btn_stop_recording")}</span>
+                      </button>
+                    ) : (
+                      <button type="button" onClick={handleStartRecording} className="secondary-btn">
+                        <IconPlayerPlay size={18} aria-hidden="true" />
+                        <span>{t("btn_start_recording")}</span>
+                      </button>
+                    )}
+                    {sttResult && (
+                      <div style={{ marginTop: 10, fontSize: "0.9rem", color: "#cbd5e1" }}>
+                        <strong>{t("transcribed_text_title")}:</strong> {sttResult}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tool 2: Manual Text to Speech */}
+                  <div className="tool-subcard">
+                    <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <IconVolume size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                      <span>{t("tts_title")}</span>
+                    </h3>
+                    <textarea
+                      style={{
+                        width: "100%",
+                        minHeight: "70px",
+                        background: "rgba(0,0,0,0.3)",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        borderRadius: "8px",
+                        padding: "8px",
+                        color: "#fff",
+                        fontSize: "0.9rem"
+                      }}
+                      placeholder={t("tts_placeholder")}
+                      value={ttsText}
+                      onChange={(e) => setTtsText(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTTS}
+                      className="secondary-btn"
+                      style={{ marginTop: 8 }}
+                    >
+                      <IconVolume size={18} aria-hidden="true" />
+                      <span>{t("btn_speak_text")}</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 3: Static Image Object Detection */}
+                  <div className="tool-subcard">
+                    <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <IconEye size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                      <span>{t("static_detect_title")}</span>
+                    </h3>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleObjectDetection}
+                      id="static-obj-file"
+                      style={{ fontSize: "0.85rem", color: "#94a3b8" }}
+                    />
+                    {objectResult.length > 0 && (
+                      <ul style={{ marginTop: 8, fontSize: "0.85rem", listStyle: "none", padding: 0 }}>
+                        {objectResult.map((o, idx) => (
+                          <li key={idx}>
+                            • {translateObjectLabel(o.class_name, language)}: {(o.confidence * 100).toFixed(1)}%
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Tool 4: Manual OCR Upload */}
+                  <div className="tool-subcard">
+                    <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <IconBook size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                      <span>{t("ocr_title")}</span>
+                    </h3>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleOCR}
+                      id="static-ocr-file"
+                      style={{ fontSize: "0.85rem", color: "#94a3b8" }}
+                    />
+                    {ocrResult && (
+                      <div style={{ marginTop: 8, fontSize: "0.85rem", color: "#cbd5e1" }}>
+                        <strong>{t("extracted_text_title")}:</strong> {ocrResult}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tool 5: Testing Only Demo Origin Simulator */}
+                  <div className="tool-subcard" style={{ borderColor: "rgba(245, 158, 11, 0.4)" }}>
+                    <h3 style={{ color: "#fbbf24", display: "flex", alignItems: "center", gap: 8 }}>
+                      <IconCrosshair size={18} aria-hidden="true" style={{ color: "#fbbf24" }} />
+                      <span>{t("demo_origin_test_btn") || "[Testing Only] Set Demo GPS"}</span>
+                    </h3>
+                    <p style={{ fontSize: "0.82rem", color: "#94a3b8", marginBottom: 10 }}>
+                      Sets location to Mysuru City Center strictly for indoor testing when real GPS movement is not possible.
+                    </p>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => {
+                        setUserLocation(DEMO_TEST_ORIGIN);
+                        setLocationStatus("ACTIVE");
+                        speakText(t("messages.demoGpsSet"));
+                      }}
+                    >
+                      <IconCrosshair size={18} aria-hidden="true" />
+                      <span>{t("demo_origin_test_btn") || "Set Demo Origin (Mysuru)"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
         </div>
+
+        {/* 6. Accessible Voice Commands Help Modal Dialog */}
+        {isHelpOpen && (
+          <div
+            className="modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsHelpOpen(false);
+            }}
+            role="presentation"
+          >
+            <div
+              className="modal-content-card"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="help-dialog-title"
+            >
+              <div className="modal-header">
+                <h2 id="help-dialog-title" className="modal-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconHelp size={22} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                  <span>{t("help_dialog_title") || t("supported_commands_title")}</span>
+                </h2>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setIsHelpOpen(false)}
+                  aria-label={t("help_dialog_close") || "Close"}
+                >
+                  <IconX size={20} aria-hidden="true" />
+                </button>
+              </div>
+
+              {/* Navigation Commands */}
+              <div className="help-category">
+                <div className="help-cat-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconCompass size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                  <span>{t("help_nav_category") || "Navigation Commands"}</span>
+                </div>
+                <ul className="help-command-list">
+                  <li className="help-command-item">
+                    <code>"Take me to [place]"</code>
+                    <span>Calculates walking route</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Stop navigation"</code>
+                    <span>Stops active guidance</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Pause / Resume"</code>
+                    <span>Pauses or resumes guidance</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Next step"</code>
+                    <span>Advances to next turn</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Repeat instruction"</code>
+                    <span>Repeats the last spoken step</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Where am I?"</code>
+                    <span>Reports current GPS location</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Assistance Commands */}
+              <div className="help-category">
+                <div className="help-cat-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconEye size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                  <span>{t("help_vision_category") || "Assistance & Perception"}</span>
+                </div>
+                <ul className="help-command-list">
+                  <li className="help-command-item">
+                    <code>"What is around me?"</code>
+                    <span>Summary of objects in view</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Read this" / "Read sign"</code>
+                    <span>Reads text using live camera</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Start / Stop detection"</code>
+                    <span>Toggles camera & obstacle detector</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Language Commands */}
+              <div className="help-category">
+                <div className="help-cat-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconWorld size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+                  <span>{t("help_lang_category") || "Language & System"}</span>
+                </div>
+                <ul className="help-command-list">
+                  <li className="help-command-item">
+                    <code>"Change language to Kannada"</code>
+                    <span>Switches to Kannada & neural voice</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Malayalam / Hindi / Tamil / Telugu"</code>
+                    <span>Switches to regional language</span>
+                  </li>
+                  <li className="help-command-item">
+                    <code>"Help"</code>
+                    <span>Spoken summary of commands</span>
+                  </li>
+                </ul>
+              </div>
+
+              <button
+                type="button"
+                className="primary-action-btn"
+                style={{ width: "100%", justifyContent: "center", marginTop: 10 }}
+                onClick={() => setIsHelpOpen(false)}
+              >
+                <IconX size={18} aria-hidden="true" />
+                <span>{t("help_dialog_close") || "Close Help"}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

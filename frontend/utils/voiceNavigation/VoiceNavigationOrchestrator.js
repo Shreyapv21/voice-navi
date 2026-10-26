@@ -398,7 +398,28 @@ export class VoiceNavigationOrchestrator {
 
   async handleDestinationRequest(query) {
     this.setState(VOICE_NAV_STATES.CONFIRMING_DESTINATION);
-    const indoorMatch = await matchDestination(query);
+
+    // If in indoor mode, plan route directly on the live SLAM map without demanding QR markers or pre-defined maps
+    if (this.environment.classification === 'indoor' || this.deps.getNavigationMode?.() === 'indoor') {
+      this.activeMode = 'indoor';
+      this.speak("Searching active indoor map for " + query, { force: true });
+
+      if (this.deps.indoorNav?.navigateToDestination) {
+        const plan = await this.deps.indoorNav.navigateToDestination(query);
+        if (plan && plan.status === 'success') {
+          this.indoorSnapshot.isNavigating = true;
+          this.setState(VOICE_NAV_STATES.NAVIGATING);
+          return;
+        }
+      }
+      this.setState(VOICE_NAV_STATES.LISTENING);
+      return;
+    }
+
+    const indoorMatch = await matchDestination(query, {
+      buildingId: this.indoorSnapshot.buildingId,
+      currentLocationId: this.indoorSnapshot.currentLocationId
+    });
 
     if (indoorMatch.status === "ambiguous") {
       this.pendingCandidates = indoorMatch.candidates;

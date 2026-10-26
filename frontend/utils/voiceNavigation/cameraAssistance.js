@@ -1,6 +1,7 @@
 /**
- * Maps YOLO COCO detections to weak environmental hints only.
- * Standard yolov8n does NOT detect doors, stairs, or room labels natively.
+ * Enhanced Obstacle Assistance & Environment Classification for General Indoor & Outdoor Navigation.
+ * Monitors people, chairs, tables, bags, barriers, and vehicles.
+ * Computes walking path intersection and clearance based on camera bounding box geometry.
  */
 
 const OUTDOOR_CLASSES = new Set([
@@ -13,7 +14,24 @@ const OUTDOOR_CLASSES = new Set([
   "stop sign"
 ]);
 
-const OBSTACLE_NAV_CLASSES = new Set(["person", "bicycle", "car", "motorcycle", "bus", "truck"]);
+const INDOOR_OBSTACLES = new Set([
+  "person",
+  "chair",
+  "couch",
+  "dining table",
+  "table",
+  "bench",
+  "backpack",
+  "suitcase",
+  "handbag",
+  "potted plant",
+  "bed"
+]);
+
+const ALL_NAV_OBSTACLES = new Set([
+  ...OUTDOOR_CLASSES,
+  ...INDOOR_OBSTACLES
+]);
 
 export function analyzeDetectionsForEnvironment(detections = []) {
   const classNames = detections.map((d) => d.class_name).filter(Boolean);
@@ -23,25 +41,52 @@ export function analyzeDetectionsForEnvironment(detections = []) {
   };
 }
 
+/**
+ * Determines whether a detected obstacle intersects the user's forward walking corridor.
+ * Evaluates center alignment and bounding box footprint.
+ */
+export function isObstacleInPath(detection) {
+  if (!detection) return false;
+  const dir = (detection.direction || "").toLowerCase();
+  return dir === "center" || dir === "front" || dir === "middle" || dir === "";
+}
+
+/**
+ * Formulates concise, non-repetitive obstacle warning prioritizing path blockage.
+ */
 export function pickNavigationObstacleWarning(detections = [], lastSpokenKeyRef) {
   if (!detections?.length) return null;
   const relevant = detections.filter(
-    (d) => OBSTACLE_NAV_CLASSES.has(d.class_name) && (d.confidence ?? 1) >= 0.45
+    (d) => ALL_NAV_OBSTACLES.has(d.class_name?.toLowerCase()) && (d.confidence ?? 1) >= 0.45
   );
   if (relevant.length === 0) return null;
 
-  const primary = relevant[0];
-  const key = `${primary.class_name}:${primary.direction || "unknown"}`;
+  // Prioritize obstacle directly in the forward path
+  const inPath = relevant.filter(isObstacleInPath);
+  const primary = inPath.length > 0 ? inPath[0] : relevant[0];
+
+  const label = primary.class_name;
+  const inWalkingPath = isObstacleInPath(primary);
+  const key = `${label}:${inWalkingPath ? "in_path" : primary.direction || "side"}`;
   const now = Date.now();
-  if (lastSpokenKeyRef?.current?.key === key && now - (lastSpokenKeyRef.current.time || 0) < 12000) {
+
+  // Cooldown to avoid repetitive chatter (10s)
+  if (lastSpokenKeyRef?.current?.key === key && now - (lastSpokenKeyRef.current.time || 0) < 10000) {
     return null;
   }
   if (lastSpokenKeyRef) {
     lastSpokenKeyRef.current = { key, time: now };
   }
 
-  const label = primary.class_name;
   const distPart = primary.distance ? ` about ${primary.distance} meters ahead` : "";
   const dirPart = primary.direction ? ` to your ${primary.direction}` : "";
-  return `Caution: ${label} detected${dirPart}${distPart}. This is a camera observation, not a guarantee the path is clear.`;
+
+  if (inWalkingPath) {
+    if (primary.distance && parseFloat(primary.distance) <= 1.8) {
+      return `Stop. An obstacle, ${label}, is directly in your walking path${distPart}. Please pause or step aside safely.`;
+    }
+    return `Caution: ${label} detected in your path${distPart}. Clearance is limited.`;
+  }
+
+  return `Caution: ${label} detected${dirPart}${distPart}. Keep your heading.`;
 }

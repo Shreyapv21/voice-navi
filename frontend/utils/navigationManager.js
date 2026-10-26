@@ -172,19 +172,27 @@ export class NavigationManager {
           this.currentPosition = origin;
           this.isDemoLocation = false;
         } catch (geoErr) {
-          console.warn("Real GPS unavailable, using demo location:", geoErr.message);
-          // Demo fallback: Mysuru City Center (Sayyaji Rao Road)
-          origin = {
-            latitude: 12.3086,
-            longitude: 76.6531,
-            accuracy: 5,
-            isDemo: true,
-            label: "Demo Location (Mysuru City Center)"
-          };
-          this.currentPosition = origin;
-          this.isDemoLocation = true;
-          isDemo = true;
-          this.onStateChange({ isDemoLocation: true, currentPosition: origin });
+          console.warn("Real GPS acquisition failed:", geoErr.message);
+          let errorCode = "LOCATION_UNAVAILABLE";
+          let userMsg = "Unable to determine your location. Please check your GPS signal.";
+          if (geoErr && geoErr.code === 1) {
+            errorCode = "LOCATION_PERMISSION_DENIED";
+            userMsg = "Location permission is required to navigate. Please allow location access in your browser.";
+          } else if (geoErr && geoErr.code === 2) {
+            errorCode = "LOCATION_POSITION_UNAVAILABLE";
+            userMsg = "GPS position is unavailable. Please ensure location services are enabled on your device.";
+          } else if (geoErr && geoErr.code === 3) {
+            errorCode = "LOCATION_TIMEOUT";
+            userMsg = "Location request timed out. Please try again or refresh your GPS.";
+          }
+          this.isNavigating = false;
+          this.onStateChange({
+            isNavigating: false,
+            status: "LOCATION_ERROR",
+            errorMessage: userMsg
+          });
+          this.onError(errorCode, userMsg);
+          return false;
         }
       } else {
         this.currentPosition = origin;

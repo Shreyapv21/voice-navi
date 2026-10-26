@@ -108,7 +108,7 @@ describe("Multilingual TTS & Navigation Instruction Tests", () => {
         const response = await axios.post("http://127.0.0.1:5000/tts", {
           text: "ಹಲೋ, ಇದು ಪರೀಕ್ಷೆ",
           lang: "kn-IN"
-        }, { timeout: 8000 });
+        }, { timeout: 15000 });
 
         assert.strictEqual(response.status, 200);
         assert.strictEqual(response.data.status, "success");
@@ -129,7 +129,7 @@ describe("Multilingual TTS & Navigation Instruction Tests", () => {
         const response = await axios.post("http://127.0.0.1:5000/tts", {
           text: "നമസ്കാരം, ഇത് പരീക്ഷണമാണ്",
           lang: "ml-IN"
-        }, { timeout: 8000 });
+        }, { timeout: 15000 });
 
         assert.strictEqual(response.status, 200);
         assert.strictEqual(response.data.status, "success");

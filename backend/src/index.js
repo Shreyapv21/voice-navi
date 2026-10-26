@@ -27,10 +27,17 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api", aiRoutes);
 app.use("/api/navigation", navigationRoutes);
 app.use("/api/indoor", indoorRoutes);
+app.use("/slam", indoorRoutes);
+
+// Serve frontend dist if available (supports single-port deployment or ngrok to port 5000)
+const frontendDist = path.join(__dirname, "../../frontend/dist");
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+}
 
 // Health check
-app.get("/", (req, res) => {
-  res.send("✅ Node backend is running!");
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", message: "Node backend is running!" });
 });
 
 // ------------------ TTS ------------------

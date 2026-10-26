@@ -20,8 +20,8 @@ export const hi = {
   voice_nav_experience_title: "वॉयस-प्रथम नेविगेशन",
   voice_nav_experience_subtitle: "बोले गए गंतव्य और मोड़-दर-मोड़ मार्गदर्शन के लिए प्राथमिक इंटरफ़ेस। शुरू करने के लिए बटन दबाएं या Alt+V दबाएं।",
   voice_nav_perms_note: "पूछे जाने पर माइक्रोफ़ोन अनुमति दें। कैमरा एक्सेस बाधा चेतावनियों को बेहतर बनाता है।",
-  enable_voice_nav: "🎙️ वॉयस नेविगेशन शुरू करें",
-  end_voice_nav: "⏹️ वॉयस सत्र समाप्त करें",
+  enable_voice_nav: "वॉयस नेविगेशन शुरू करें",
+  end_voice_nav: "वॉयस सत्र समाप्त करें",
   voice_session_status: "वॉयस सत्र",
   mic_status: "माइक्रोफ़ोन",
   mic_listening: "सुन रहा है",
@@ -30,7 +30,7 @@ export const hi = {
   text_fallback_label: "आदेश टाइप करें (कीबोर्ड विकल्प):",
   text_fallback_placeholder: 'उदा: "सेंट्रल पार्क ले चलो", "मेरे आसपास क्या है?"',
   send: "भेजें",
-  repeat_onboarding: "🔊 वॉयस परिचय दोबारा सुनें",
+  repeat_onboarding: "वॉयस परिचय दोबारा सुनें",
 
   // Session States
   state_idle: "निष्क्रिय",
@@ -46,8 +46,8 @@ export const hi = {
 
   // Master Toolbar
   toolbar_label: "भाषा और वॉयस नियंत्रण टूलबार",
-  enable_voice_commands: "🎙️ वॉयस कमांड चालू करें",
-  stop_voice_listening: "⏹️ वॉयस सुनना बंद करें",
+  enable_voice_commands: "वॉयस कमांड चालू करें",
+  stop_voice_listening: "वॉयस सुनना बंद करें",
   voice_control_active: "वॉयस नियंत्रण सक्रिय है",
   listening_for_commands: "आदेशों की प्रतीक्षा में... अब बोलें (या Alt+V दबाएं)।",
   heard: "सुना गया",
@@ -86,10 +86,10 @@ export const hi = {
   status_processing: "प्रोसेसिंग...",
   status_stopped: "बंद",
   status_error: "त्रुटि",
-  btn_start_live: "▶️ लाइव पहचान शुरू करें",
-  btn_stop_live: "⏹️ लाइव पहचान बंद करें",
-  btn_read_signboard: "📖 बोर्ड या टेक्स्ट अभी पढ़ें",
-  btn_what_front: "🧭 मेरे सामने क्या है?",
+  btn_start_live: "लाइव पहचान शुरू करें",
+  btn_stop_live: "लाइव पहचान बंद करें",
+  btn_read_signboard: "बोर्ड या टेक्स्ट अभी पढ़ें",
+  btn_what_front: "मेरे सामने क्या है?",
   current_detections_title: "पहचानी गई वस्तुएं (स्वचालित आवाज़):",
   monitoring_no_obstacles: "YOLOv8 द्वारा निगरानी जारी... वर्तमान में कोई बाधा नहीं मिली।",
   meters_away: "मीटर दूर",
@@ -97,14 +97,14 @@ export const hi = {
   // Navigation Card (Outdoor & Indoor)
   nav_title: "वॉयस नेविगेशन",
   nav_subtitle: "आउटडोर जीपीएस पैदल रास्ते या इनडोर मंजिल के नक्शे के साथ कदम-दर-कदम मार्गदर्शन चुनें।",
-  mode_outdoor: "🛰 आउटडोर जीपीएस",
-  mode_indoor: "🏢 इनडोर मंजिलें",
-  mode_slam: "🧭 इनडोर स्लैम मैपिंग",
+  mode_outdoor: "आउटडोर जीपीएस",
+  mode_indoor: "इनडोर मंजिलें",
+  mode_slam: "इनडोर स्लैम मैपिंग",
   outdoor_prompt: '"मुझे [स्थान] ले चलो" बोलें या नीचे गंतव्य टाइप करें:',
   destination_input_placeholder: "उदा: सेंट्रल पार्क, निकटतम मेट्रो स्टेशन, अस्पताल...",
   destination_input_aria: "पैदल गंतव्य दर्ज करें",
-  btn_navigate: "🧭 रास्ता खोजें",
-  btn_stop_nav: "⏹️ नेविगेशन रोकें",
+  btn_navigate: "रास्ता खोजें",
+  btn_stop_nav: "नेविगेशन रोकें",
   navigating_to: "आउटडोर जीपीएस — गंतव्य:",
   remaining_distance: "शेष दूरी:",
   estimated_time: "अनुमानित समय:",
@@ -112,7 +112,7 @@ export const hi = {
   calculating: "गणना की जा रही है...",
 
   // Indoor Navigation Panel
-  indoor_badge: "🏢 इनडोर मंजिल मोड — नक्शा आधारित मार्ग (जीपीएस नहीं)",
+  indoor_badge: "इनडोर मंजिल मोड — नक्शा आधारित मार्ग (जीपीएस नहीं)",
   indoor_hint: "अपनी इमारत और मंजिल चुनें, अपना वर्तमान स्थान मैन्युअल रूप से या क्यूआर मार्कर से सेट करें, गंतव्य चुनें और कदम-दर-कदम मार्गदर्शन शुरू करें।",
   building: "इमारत",
   floor: "मंजिल",
@@ -121,13 +121,13 @@ export const hi = {
   destination: "गंतव्य",
   select_placeholder: "— चुनें —",
   prefer_accessible: "सुलभ मार्गों को प्राथमिकता दें (सीढ़ियों के बजाय लिफ्ट)",
-  btn_preview_route: "🗺 रास्ता देखें",
-  btn_start_indoor_nav: "▶ नेविगेशन शुरू करें",
-  btn_stop_indoor_nav: "⏹ नेविगेशन रोकें",
-  btn_repeat_instruction: "🔁 निर्देश दोहराएं",
-  btn_next_step: "⏭ अगला कदम",
-  navigating_indoors_title: "🧭 इनडोर नेविगेशन",
-  route_preview_title: "📋 मार्ग पूर्वावलोकन",
+  btn_preview_route: "रास्ता देखें",
+  btn_start_indoor_nav: "नेविगेशन शुरू करें",
+  btn_stop_indoor_nav: "नेविगेशन रोकें",
+  btn_repeat_instruction: "निर्देश दोहराएं",
+  btn_next_step: "अगला कदम",
+  navigating_indoors_title: "इनडोर नेविगेशन",
+  route_preview_title: "मार्ग पूर्वावलोकन",
   estimated_path_length: "अनुमानित रास्ते की लंबाई: लगभग",
   meters: "मीटर",
   current_instruction_label: "वर्तमान निर्देश",
@@ -138,47 +138,67 @@ export const hi = {
   planned_vs_obstacle_desc: "हाइलाइट किया गया रास्ता केवल नक्शा डेटा पर आधारित है। कैमरा बाधा पहचान केवल कैमरे के सामने की वस्तुओं की सूचना देती है।",
   indoor_localization_note: "स्थान निर्धारण क्षणिक है: क्यूआर मार्कर या मैन्युअल चयन केवल उसी समय का स्थान अपडेट करता है।",
 
+  // Destination Quick Actions & Floor Transition
+  chip_washroom: "निकटतम शौचालय",
+  chip_exit: "निकटतम निकास",
+  chip_library: "पुस्तकालय",
+  chip_reception: "स्वागत कक्ष",
+  chip_elevator: "लिफ्ट",
+  chip_stairs: "सीढ़ियाँ",
+  floor_transition_prompt: "सीढ़ी या लिफ्ट संक्रमण: कृपया अगली मंजिल पर पहुँचने पर पुष्टि करें।",
+  btn_confirm_floor: "मंजिल पर पहुँचने की पुष्टि करें",
+  quick_dest_placeholder: "गंतव्य लिखें या बोलें (जैसे पुस्तकालय, शौचालय)...",
+  btn_quick_search: "गंतव्य खोजें",
+
   // QR Marker Scanner
   qr_scanner_title: "क्यूआर मार्कर स्थान निर्धारण",
   qr_scanner_desc: "कमरे के दरवाजे पर लगे क्यूआर मार्कर को स्कैन करके अपना शुरुआती स्थान सेट करें।",
-  btn_start_qr: "📷 क्यूआर कोड स्कैन करें",
-  btn_stop_qr: "⏹ स्कैनर बंद करें",
+  btn_start_qr: "क्यूआर कोड स्कैन करें",
+  btn_stop_qr: "स्कैनर बंद करें",
 
   // SLAM Exploration Panel
-  slam_title: "अज्ञात इनडोर अन्वेषण (SLAM)",
-  slam_badge: "🧭 प्रायोगिक विज़ुअल ओडोमेट्री और मैपिंग",
+  slam_title: "सामान्य इनडोर विज़ुअल स्लैम और मैपिंग",
+  slam_badge: "विज़ुअल ओडोमेट्री और नेविगेशन ग्राफ इंजन",
   slam_desc: "कैमरा मोशन ट्रैकिंग और विज़ुअल फीचर्स का उपयोग करके बिना पूर्व-नक्शे वाले इनडोर वातावरण का नक्शा बनाएं।",
-  btn_start_slam: "🚀 इनडोर अन्वेषण शुरू करें",
-  btn_stop_slam: "⏹ अन्वेषण बंद करें",
+  btn_start_slam: "इनडोर अन्वेषण शुरू करें",
+  btn_stop_slam: "अन्वेषण बंद करें",
   slam_tracking_confidence: "ट्रैकिंग विश्वसनीयता",
   slam_landmarks_mapped: "मैप किए गए स्थल",
   slam_keyframes: "कीफ़्रेम",
   slam_status: "स्लैम स्थिति",
   slam_guidance: "मार्गदर्शन",
+  slam_mode_exploration: "अन्वेषण मोड (लाइव मैपिंग)",
+  slam_mode_premapped: "पूर्व-मैप किया गया मोड",
+  slam_label_placeholder: "इस स्थान को नाम दें (उदा. पुस्तकालय, लैब)...",
+  slam_btn_save_label: "लेबल सहेजें",
+  slam_relocalized_badge: "कीफ़्रेम पर पुनः स्थानीयकृत",
+  slam_export_btn: "नक्शा निर्यात करें",
+  slam_load_btn: "नक्शा लोड करें",
+  slam_scale_approx: "पैमाना: लगभग ~0.35 मी/कदम। मोनोक्युलर कैमरे में प्रत्यक्ष मीट्रिक पैमाना नहीं होता।",
   slam_disclaimer: "विज़ुअल स्लैम मोनोक्युलर कैमरे पर निर्भर है। दूरी और पैमाना अनुमानित हैं।",
 
   // OCR Card
   ocr_title: "तस्वीर से पाठ पढ़ें (OCR)",
-  ocr_upload_label: "📤 पाठ पढ़ने के लिए छवि चुनें",
+  ocr_upload_label: "पाठ पढ़ने के लिए छवि चुनें",
   extracted_text_title: "निकाला गया पाठ:",
 
   // Static Object Detection Card
   static_detect_title: "स्थिर छवि वस्तु पहचान",
-  static_upload_label: "📤 वस्तुएं पहचानने के लिए छवि चुनें",
+  static_upload_label: "वस्तुएं पहचानने के लिए छवि चुनें",
   detected_objects_title: "पहचानी गई वस्तुएं:",
   confidence_label: "सटीकता",
 
   // Speech to Text Card
   stt_title: "वाक् से पाठ (STT)",
   recording_in_progress: "रिकॉर्डिंग जारी है... माइक्रोफ़ोन में बोलें।",
-  btn_start_recording: "🎙️ रिकॉर्डिंग शुरू करें",
-  btn_stop_recording: "⏹️ रिकॉर्डिंग बंद करें",
+  btn_start_recording: "रिकॉर्डिंग शुरू करें",
+  btn_stop_recording: "रिकॉर्डिंग बंद करें",
   transcribed_text_title: "ट्रांसक्राइब किया गया पाठ:",
 
   // Text to Speech Card
   tts_title: "पाठ से वाक् (TTS)",
   tts_placeholder: "बोलने के लिए कुछ लिखें...",
-  btn_speak_text: "🔉 यह पाठ बोलें",
+  btn_speak_text: "यह पाठ बोलें",
 
   // System & Spoken Messages
   messages: {
@@ -226,5 +246,38 @@ export const hi = {
     routeProgress: "शेष दूरी {distance} है। अनुमानित समय {duration} है।",
     turnStepOf: "मोड़ {current} / {total}",
     segmentDistance: "खंड की दूरी: {distance}"
-  }
+  },
+
+  // Redesign & Voice-First Hero
+  hero_prompt_title: "आप कहाँ जाना चाहते हैं?",
+  hero_prompt_subtitle: "अपना गंतव्य बोलें या दृष्टि से अपने परिवेश का वर्णन करने के लिए कहें।",
+  app_tagline_refined: "विश्वास के साथ आगे बढ़ें।",
+  app_heading_refined: "आपकी दुनिया, आपकी पहुंच में",
+
+  // GPS Location Status
+  gps_locating: "आपकी स्थिति खोजी जा रही है…",
+  gps_available: "वर्तमान स्थान उपलब्ध है",
+  gps_permission_required: "स्थान अनुमति आवश्यक है। कृपया ब्राउज़र में अनुमति दें।",
+  gps_unavailable: "आपके स्थान का निर्धारण नहीं हो सका। जीपीएस सिग्नल जांचें।",
+  gps_timeout: "स्थान अनुरोध का समय समाप्त हो गया। कृपया पुन: प्रयास करें।",
+  gps_refresh: "स्थान ताज़ा करें",
+
+  // Live Assistance
+  live_assistance_title: "लाइव सहायता और परिवेश",
+  live_assistance_disclaimer: "बाधा पहचान एक सहायक उपकरण है और सुरक्षित मार्ग की गारंटी नहीं देता है। अपने प्राथमिक गतिशीलता उपकरणों पर निर्भर रहें।",
+  camera_active: "कैमरा सक्रिय",
+  camera_inactive: "कैमरा बंद",
+
+  // Advanced Tools & Testing
+  advanced_tools_title: "उन्नत उपकरण और परीक्षण",
+  advanced_tools_subtitle: "भाषण से पाठ, पाठ से भाषण संश्लेषण और ऑफ़लाइन परीक्षण के लिए स्वतंत्र उपकरण।",
+  demo_origin_test_btn: "[केवल परीक्षण के लिए] डेमो जीपीएस सेट करें (मैसूर)",
+  demo_origin_active: "परीक्षण के लिए डेमो जीपीएस सक्रिय है",
+
+  // Help Dialog
+  help_dialog_title: "समर्थित ध्वनि आदेश",
+  help_dialog_close: "सहायता बंद करें",
+  help_nav_category: "नेविगेशन आदेश",
+  help_vision_category: "लाइव सहायता और दृष्टि",
+  help_lang_category: "भाषा और प्रणाली"
 };

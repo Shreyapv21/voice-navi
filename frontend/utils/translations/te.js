@@ -20,8 +20,8 @@ export const te = {
   voice_nav_experience_title: "వాయిస్-ప్రథమ నావిగేషన్",
   voice_nav_experience_subtitle: "గమ్యస్థానాలు మరియు మలుపుల వారీ మార్గదర్శకత్వం కోసం ప్రాథమిక ఇంటర్‌ఫేస్. ప్రారంభించడానికి బటన్ నొక్కండి లేదా Alt+V నొక్కండి.",
   voice_nav_perms_note: "అడిగినప్పుడు మైక్రోఫోన్ అనుమతి ఇవ్వండి. కెమెరా యాక్సెస్ అడ్డంకుల హెచ్చరికలను మెరుగుపరుస్తుంది.",
-  enable_voice_nav: "🎙️ వాయిస్ నావిగేషన్ ప్రారంభించండి",
-  end_voice_nav: "⏹️ వాయిస్ సెషన్ ముగించండి",
+  enable_voice_nav: "వాయిస్ నావిగేషన్ ప్రారంభించండి",
+  end_voice_nav: "వాయిస్ సెషన్ ముగించండి",
   voice_session_status: "వాయిస్ సెషన్",
   mic_status: "మైక్రోఫోన్",
   mic_listening: "వింటోంది",
@@ -30,7 +30,7 @@ export const te = {
   text_fallback_label: "ఆదేశాన్ని టైప్ చేయండి (కీబోర్డ్ ప్రత్యామ్నాయం):",
   text_fallback_placeholder: 'ఉదా: "సెంట్రల్ పార్క్‌కు తీసుకెళ్లండి", "నా చుట్టూ ఏముంది?"',
   send: "పంపండి",
-  repeat_onboarding: "🔊 వాయిస్ పరిచయాన్ని మళ్లీ వినండి",
+  repeat_onboarding: "వాయిస్ పరిచయాన్ని మళ్లీ వినండి",
 
   // Session States
   state_idle: "నిష్క్రియ",
@@ -46,8 +46,8 @@ export const te = {
 
   // Master Toolbar
   toolbar_label: "భాష మరియు వాయిస్ నియంత్రణ టూల్‌బార్",
-  enable_voice_commands: "🎙️ వాయిస్ ఆదేశాలను ప్రారంభించండి",
-  stop_voice_listening: "⏹️ వాయిస్ వినడం ఆపండి",
+  enable_voice_commands: "వాయిస్ ఆదేశాలను ప్రారంభించండి",
+  stop_voice_listening: "వాయిస్ వినడం ఆపండి",
   voice_control_active: "వాయిస్ నియంత్రణ సక్రియంగా ఉంది",
   listening_for_commands: "ఆదేశాల కోసం వింటోంది... ఇప్పుడు మాట్లాడండి (లేదా Alt+V నొక్కండి).",
   heard: "విన్నది",
@@ -86,10 +86,10 @@ export const te = {
   status_processing: "ప్రాసెసింగ్...",
   status_stopped: "ఆపివేయబడింది",
   status_error: "లోపం",
-  btn_start_live: "▶️ లైవ్ గుర్తింపు ప్రారంభించండి",
-  btn_stop_live: "⏹️ లైవ్ గుర్తింపు ఆపండి",
-  btn_read_signboard: "📖 బోర్డు / వచనాన్ని చదవండి",
-  btn_what_front: "🧭 నా ముందు ఏముంది?",
+  btn_start_live: "లైవ్ గుర్తింపు ప్రారంభించండి",
+  btn_stop_live: "లైవ్ గుర్తింపు ఆపండి",
+  btn_read_signboard: "బోర్డు / వచనాన్ని చదవండి",
+  btn_what_front: "నా ముందు ఏముంది?",
   current_detections_title: "గుర్తించిన వస్తువులు (ఆటోమేటిక్ వాయిస్):",
   monitoring_no_obstacles: "YOLOv8 ద్వారా పర్యవేక్షించబడుతోంది... ఎటువంటి అడ్డంకులు లేవు.",
   meters_away: "మీటర్ల దూరంలో",
@@ -97,14 +97,14 @@ export const te = {
   // Navigation Card (Outdoor & Indoor)
   nav_title: "వాయిస్ నావిగేషన్",
   nav_subtitle: "అవుట్‌డోర్ జీపీఎస్ నడక మార్గాలు లేదా ఇండోర్ ఫ్లోర్ మ్యాప్‌లతో దశలవారీ మార్గదర్శకత్వాన్ని ఎంచుకోండి.",
-  mode_outdoor: "🛰 అవుట్‌డోర్ జీపీఎస్",
-  mode_indoor: "🏢 ఇండోర్ అంతస్తులు",
-  mode_slam: "🧭 ఇండోర్ స్లామ్ మ్యాపింగ్",
+  mode_outdoor: "అవుట్‌డోర్ జీపీఎస్",
+  mode_indoor: "ఇండోర్ అంతస్తులు",
+  mode_slam: "ఇండోర్ స్లామ్ మ్యాపింగ్",
   outdoor_prompt: '"నన్ను [స్థలం]కు తీసుకెళ్లండి" అని చెప్పండి లేదా క్రింద గమ్యాన్ని టైప్ చేయండి:',
   destination_input_placeholder: "ఉదా: సెంట్రల్ పార్క్, సమీప మెట్రో స్టేషన్, ఆసుపత్రి...",
   destination_input_aria: "నడక గమ్యస్థానాన్ని నమోదు చేయండి",
-  btn_navigate: "🧭 మార్గం చూపించు",
-  btn_stop_nav: "⏹️ నావిగేషన్ ఆపండి",
+  btn_navigate: "మార్గం చూపించు",
+  btn_stop_nav: "నావిగేషన్ ఆపండి",
   navigating_to: "అవుట్‌డోర్ జీపీఎస్ — గమ్యం:",
   remaining_distance: "మిగిలిన దూరం:",
   estimated_time: "అంచనా సమయం:",
@@ -112,7 +112,7 @@ export const te = {
   calculating: "లెక్కిస్తోంది...",
 
   // Indoor Navigation Panel
-  indoor_badge: "🏢 ఇండోర్ అంతస్తుల మోడ్ — మ్యాప్ ఆధారిత మార్గాలు (జీపీఎస్ కాదు)",
+  indoor_badge: "ఇండోర్ అంతస్తుల మోడ్ — మ్యాప్ ఆధారిత మార్గాలు (జీపీఎస్ కాదు)",
   indoor_hint: "మీ భవనం మరియు అంతస్తును ఎంచుకోండి, మీ ప్రస్తుత స్థానాన్ని సెట్ చేయండి, గమ్యాన్ని ఎంచుకోండి మరియు దశలవారీ మార్గదర్శకత్వాన్ని ప్రారంభించండి.",
   building: "భవనం",
   floor: "అంతస్తు",
@@ -121,13 +121,13 @@ export const te = {
   destination: "గమ్యస్థానం",
   select_placeholder: "— ఎంచుకోండి —",
   prefer_accessible: "సులభమైన మార్గాలకు ప్రాధాన్యత ఇవ్వండి (మెట్లకు బదులుగా లిఫ్ట్)",
-  btn_preview_route: "🗺 మార్గాన్ని చూడండి",
-  btn_start_indoor_nav: "▶ నావిగేషన్ ప్రారంభించండి",
-  btn_stop_indoor_nav: "⏹ నావిగేషన్ ఆపండి",
-  btn_repeat_instruction: "🔁 సూచనను మళ్లీ చెప్పండి",
-  btn_next_step: "⏭ తదుపరి దశ",
-  navigating_indoors_title: "🧭 ఇండోర్ నావిగేషన్",
-  route_preview_title: "📋 మార్గ సమీక్ష",
+  btn_preview_route: "మార్గాన్ని చూడండి",
+  btn_start_indoor_nav: "నావిగేషన్ ప్రారంభించండి",
+  btn_stop_indoor_nav: "నావిగేషన్ ఆపండి",
+  btn_repeat_instruction: "సూచనను మళ్లీ చెప్పండి",
+  btn_next_step: "తదుపరి దశ",
+  navigating_indoors_title: "ఇండోర్ నావిగేషన్",
+  route_preview_title: "మార్గ సమీక్ష",
   estimated_path_length: "అంచనా మార్గం పొడవు: దాదాపు",
   meters: "మీటర్లు",
   current_instruction_label: "ప్రస్తుత సూచన",
@@ -138,47 +138,67 @@ export const te = {
   planned_vs_obstacle_desc: "చూపిన మార్గం మ్యాప్ డేటాను అనుసరిస్తుంది. కెమెరా గుర్తింపు కెమెరా ముందున్న వాటిని మాత్రమే చెబుతుంది.",
   indoor_localization_note: "స్థాన గుర్తింపు ఆ క్షణానికి మాత్రమే పరిమితం. నిరంతర ఇండోర్ పొజిషనింగ్ లేదు.",
 
+  // Destination Quick Actions & Floor Transition
+  chip_washroom: "సమీప వాష్‌రూమ్",
+  chip_exit: "సమీప నిష్క్రమణ",
+  chip_library: "లైబ్రరీ",
+  chip_reception: "రిసెప్షన్",
+  chip_elevator: "లిఫ్ట్",
+  chip_stairs: "మెట్లు",
+  floor_transition_prompt: "మెట్లు లేదా లిఫ్ట్ పరివర్తన: తదుపరి అంతస్తుకు చేరుకున్నప్పుడు దయచేసి నిర్ధారించండి.",
+  btn_confirm_floor: "అంతస్తు చేరుకున్నట్లు నిర్ధారించండి",
+  quick_dest_placeholder: "గమ్యాన్ని టైప్ చేయండి లేదా మాట్లాడండి (ఉదా. లైబ్రరీ, వాష్‌రూమ్)...",
+  btn_quick_search: "గమ్యాన్ని శోధించండి",
+
   // QR Marker Scanner
   qr_scanner_title: "క్యూఆర్ మార్కర్ స్థాన గుర్తింపు",
   qr_scanner_desc: "మీ ప్రారంభ స్థానాన్ని సెట్ చేయడానికి తలుపు వద్ద ఉన్న క్యూఆర్ కోడ్‌ను స్కాన్ చేయండి.",
-  btn_start_qr: "📷 క్యూఆర్ కోడ్ స్కాన్ చేయండి",
-  btn_stop_qr: "⏹ స్కానర్ ఆపండి",
+  btn_start_qr: "క్యూఆర్ కోడ్ స్కాన్ చేయండి",
+  btn_stop_qr: "స్కానర్ ఆపండి",
 
   // SLAM Exploration Panel
-  slam_title: "మ్యాప్ లేని ఇండోర్ అన్వేషణ (SLAM)",
-  slam_badge: "🧭 ప్రయోగాత్మక విజువల్ ఓడోమెట్రీ మరియు మ్యాపింగ్",
+  slam_title: "సాధారణ ఇండోర్ విజువల్ స్లామ్ మరియు మ్యాపింగ్",
+  slam_badge: "విజువల్ ఓడోమెట్రీ మరియు నావిగేషన్ గ్రాఫ్ ఇంజిన్",
   slam_desc: "కెమెరా కదలిక గుర్తింపు ద్వారా మునుపు మ్యాప్ చేయని ఇండోర్ వాతావరణాలను అన్వేషించి మ్యాప్‌ను రూపొందించండి.",
-  btn_start_slam: "🚀 ఇండోర్ అన్వేషణ ప్రారంభించండి",
-  btn_stop_slam: "⏹ అన్వేషణ ఆపండి",
+  btn_start_slam: "ఇండోర్ అన్వేషణ ప్రారంభించండి",
+  btn_stop_slam: "అన్వేషణ ఆపండి",
   slam_tracking_confidence: "ట్రాకింగ్ విశ్వసనీయత",
   slam_landmarks_mapped: "మ్యాప్ చేసిన ల్యాండ్‌మార్క్‌లు",
   slam_keyframes: "కీఫ్రేమ్‌లు",
   slam_status: "స్లామ్ స్థితి",
   slam_guidance: "మార్గదర్శకత్వం",
+  slam_mode_exploration: "అన్వేషణ మోడ్ (లైవ్ మ్యాపింగ్)",
+  slam_mode_premapped: "ముందే మ్యాప్ చేసిన మోడ్",
+  slam_label_placeholder: "ఈ స్థలాన్ని పేరు పెట్టండి (ఉదా. లైబ్రరీ, ల్యాబ్)...",
+  slam_btn_save_label: "లేబుల్ సేవ్ చేయండి",
+  slam_relocalized_badge: "కీఫ్రేమ్‌కి తిరిగి రీ-లొకలైజ్ అయింది",
+  slam_export_btn: "మ్యాప్‌ను ఎగుమతి చేయండి",
+  slam_load_btn: "మ్యాప్‌ను లోడ్ చేయండి",
+  slam_scale_approx: "స్కేల్: దాదాపు ~0.35మీ/అడుగు. మోనోక్యులర్ కెమెరాలో ప్రత్యక్ష మెట్రిక్ స్కేల్ ఉండదు.",
   slam_disclaimer: "విజువల్ స్లామ్ మోనోక్యులర్ కెమెరాపై ఆధారపడి ఉంటుంది. కొలతలు అంచనా మాత్రమే.",
 
   // OCR Card
   ocr_title: "చిత్రం నుండి వచనాన్ని చదవండి (OCR)",
-  ocr_upload_label: "📤 వచనాన్ని చదవడానికి చిత్రాన్ని ఎంచుకోండి",
+  ocr_upload_label: "వచనాన్ని చదవడానికి చిత్రాన్ని ఎంచుకోండి",
   extracted_text_title: "వెలికితీసిన వచనం:",
 
   // Static Object Detection Card
   static_detect_title: "స్థిర చిత్ర వస్తువు గుర్తింపు",
-  static_upload_label: "📤 వస్తువులను గుర్తించడానికి చిత్రాన్ని ఎంచుకోండి",
+  static_upload_label: "వస్తువులను గుర్తించడానికి చిత్రాన్ని ఎంచుకోండి",
   detected_objects_title: "గుర్తించిన వస్తువులు:",
   confidence_label: "విశ్వసనీయత",
 
   // Speech to Text Card
   stt_title: "స్పీచ్ టు టెక్స్ట్ (STT)",
   recording_in_progress: "రికార్డింగ్ జరుగుతోంది... మైక్రోఫోన్‌లో మాట్లాడండి.",
-  btn_start_recording: "🎙️ రికార్డింగ్ ప్రారంభించండి",
-  btn_stop_recording: "⏹️ రికార్డింగ్ ఆపండి",
+  btn_start_recording: "రికార్డింగ్ ప్రారంభించండి",
+  btn_stop_recording: "రికార్డింగ్ ఆపండి",
   transcribed_text_title: "ట్రాన్స్‌క్రిప్షన్:",
 
   // Text to Speech Card
   tts_title: "టెక్స్ట్ టు స్పీచ్ (TTS)",
   tts_placeholder: "మాట్లాడటానికి ఏదైనా టైప్ చేయండి...",
-  btn_speak_text: "🔉 ఈ వచనాన్ని పలకండి",
+  btn_speak_text: "ఈ వచనాన్ని పలకండి",
 
   // System & Spoken Messages
   messages: {
@@ -226,5 +246,38 @@ export const te = {
     routeProgress: "మిగిలిన దూరం {distance}. అంచనా సమయం {duration}.",
     turnStepOf: "మలుపు {current} / {total}",
     segmentDistance: "విభాగం దూరం: {distance}"
-  }
+  },
+
+  // Redesign & Voice-First Hero
+  hero_prompt_title: "మీరు ఎక్కడికి వెళ్లాలనుకుంటున్నారు?",
+  hero_prompt_subtitle: "మీ గమ్యాన్ని మాట్లాడండి లేదా మీ పరిసరాలను వివరించమని దృష్టిని అడగండి.",
+  app_tagline_refined: "నమ్మకంతో ముందుకు సాగండి.",
+  app_heading_refined: "మీ ప్రపంచం, మీ చేతికి అందే దూరంలో",
+
+  // GPS Location Status
+  gps_locating: "మీ స్థానాన్ని గుర్తిస్తోంది…",
+  gps_available: "ప్రస్తుత స్థానం అందుబాటులో ఉంది",
+  gps_permission_required: "స్థాన అనుమతి అవసరం. దయచేసి బ్రౌజర్‌లో అనుమతించండి.",
+  gps_unavailable: "మీ స్థానాన్ని నిర్ణయించలేకపోయాము. జీపీఎస్ సిగ్నల్ తనిఖీ చేయండి.",
+  gps_timeout: "స్థాన అభ్యర్థన సమయం ముగిసింది. దయచేసి మళ్లీ ప్రయత్నించండి.",
+  gps_refresh: "స్థానాన్ని రిఫ్రెష్ చేయండి",
+
+  // Live Assistance
+  live_assistance_title: "ప్రత్యక్ష సహాయం & పరిసరాలు",
+  live_assistance_disclaimer: "అడ్డంకుల గుర్తింపు ఒక సహాయక సాధనం మాత్రమే మరియు సురక్షితమైన మార్గాన్ని హామీ ఇవ్వదు. మీ ప్రాథమిక మొబిలిటీ సాధనాలపై ఆధారపడండి.",
+  camera_active: "కెమెరా యాక్టివ్‌గా ఉంది",
+  camera_inactive: "కెమెరా ఆఫ్ చేయబడింది",
+
+  // Advanced Tools & Testing
+  advanced_tools_title: "అధునాతన సాధనాలు & పరీక్ష",
+  advanced_tools_subtitle: "వాయిస్ నుండి టెక్స్ట్, టెక్స్ట్ నుండి వాయిస్ సింథసిస్ మరియు ఆఫ్‌లైన్ పరీక్షల కోసం ప్రత్యేక సాధనాలు.",
+  demo_origin_test_btn: "[పరీక్షకు మాత్రమే] డెమో జీపీఎస్ సెట్ చేయండి (మైసూర్)",
+  demo_origin_active: "పరీక్ష కోసం డెమో జీపీఎస్ యాక్టివ్‌గా ఉంది",
+
+  // Help Dialog
+  help_dialog_title: "మద్దతు ఉన్న వాయిస్ కమాండ్‌లు",
+  help_dialog_close: "సహాయాన్ని మూసివేయండి",
+  help_nav_category: "నావిగేషన్ కమాండ్‌లు",
+  help_vision_category: "ప్రత్యక్ష సహాయం & దృష్టి",
+  help_lang_category: "భాష & సిస్టమ్"
 };

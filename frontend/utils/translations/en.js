@@ -20,8 +20,8 @@ export const en = {
   voice_nav_experience_title: "Voice-First Navigation",
   voice_nav_experience_subtitle: "Primary interface for spoken destinations and turn-by-turn guidance. Tap the button or press Alt+V to begin.",
   voice_nav_perms_note: "Enable microphone permission when prompted. Optional camera access improves obstacle warnings.",
-  enable_voice_nav: "🎙️ Start Voice Navigation",
-  end_voice_nav: "⏹️ End Voice Session",
+  enable_voice_nav: "Start Voice Navigation",
+  end_voice_nav: "End Voice Session",
   voice_session_status: "Voice session",
   mic_status: "Microphone",
   mic_listening: "Listening",
@@ -30,7 +30,7 @@ export const en = {
   text_fallback_label: "Type a command (keyboard fallback):",
   text_fallback_placeholder: 'e.g., "Take me to Central Park", "What is around me?"',
   send: "Send",
-  repeat_onboarding: "🔊 Repeat Spoken Onboarding",
+  repeat_onboarding: "Repeat Spoken Onboarding",
 
   // Session States
   state_idle: "Idle",
@@ -46,8 +46,8 @@ export const en = {
 
   // Master Toolbar
   toolbar_label: "Language and Voice Control Toolbar",
-  enable_voice_commands: "🎙️ Enable Voice Commands",
-  stop_voice_listening: "⏹️ Stop Voice Listening",
+  enable_voice_commands: "Enable Voice Commands",
+  stop_voice_listening: "Stop Voice Listening",
   voice_control_active: "Voice Control Active",
   listening_for_commands: "Listening for commands... Speak now (or press Alt+V).",
   heard: "Heard",
@@ -86,10 +86,10 @@ export const en = {
   status_processing: "PROCESSING",
   status_stopped: "STOPPED",
   status_error: "ERROR",
-  btn_start_live: "▶️ Start Live Detection",
-  btn_stop_live: "⏹️ Stop Live Detection",
-  btn_read_signboard: "📖 Read Text / Signboard Now",
-  btn_what_front: "🧭 What is in Front of Me?",
+  btn_start_live: "Start Live Detection",
+  btn_stop_live: "Stop Live Detection",
+  btn_read_signboard: "Read Text / Signboard Now",
+  btn_what_front: "What is in Front of Me?",
   current_detections_title: "Current Detections (Auto-Spoken with Cooldown):",
   monitoring_no_obstacles: "Monitoring surroundings with YOLOv8... No obstacles currently detected.",
   meters_away: "m away",
@@ -97,14 +97,14 @@ export const en = {
   // Navigation Card (Outdoor & Indoor)
   nav_title: "Voice Navigation",
   nav_subtitle: "Choose outdoor GPS walking routes or indoor floor maps with step-by-step guidance.",
-  mode_outdoor: "🛰 Outdoor GPS",
-  mode_indoor: "🏢 Indoor Floors",
-  mode_slam: "🧭 Indoor SLAM Mapping",
+  mode_outdoor: "Outdoor GPS",
+  mode_indoor: "Indoor Floors",
+  mode_slam: "Indoor SLAM Mapping",
   outdoor_prompt: 'Say "Take me to [destination]" or type a destination below:',
   destination_input_placeholder: "e.g., Central Park, Nearest Metro Station, Hospital...",
   destination_input_aria: "Enter Walking Destination",
-  btn_navigate: "🧭 Navigate",
-  btn_stop_nav: "⏹️ Stop Navigation",
+  btn_navigate: "Navigate",
+  btn_stop_nav: "Stop Navigation",
   navigating_to: "Outdoor GPS — Navigating to:",
   remaining_distance: "Remaining Distance:",
   estimated_time: "Estimated Time:",
@@ -112,7 +112,7 @@ export const en = {
   calculating: "Calculating...",
 
   // Indoor Navigation Panel
-  indoor_badge: "🏢 Indoor Floors mode — map-based routes (not GPS)",
+  indoor_badge: "Indoor Floors mode — map-based routes (not GPS)",
   indoor_hint: "Select your building and floor, set your current location manually or with a QR marker, choose a destination, then start step-by-step guidance. Next Step is manual for demonstration; the app does not track your movement automatically indoors.",
   building: "Building",
   floor: "Floor",
@@ -121,13 +121,13 @@ export const en = {
   destination: "Destination",
   select_placeholder: "— Select —",
   prefer_accessible: "Prefer accessible routes (elevator over stairs when possible)",
-  btn_preview_route: "🗺 Preview Route",
-  btn_start_indoor_nav: "▶ Start Navigation",
-  btn_stop_indoor_nav: "⏹ Stop Navigation",
-  btn_repeat_instruction: "🔁 Repeat Instruction",
-  btn_next_step: "⏭ Next Step",
-  navigating_indoors_title: "🧭 Navigating indoors",
-  route_preview_title: "📋 Route preview",
+  btn_preview_route: "Preview Route",
+  btn_start_indoor_nav: "Start Navigation",
+  btn_stop_indoor_nav: "Stop Navigation",
+  btn_repeat_instruction: "Repeat Instruction",
+  btn_next_step: "Next Step",
+  navigating_indoors_title: "Navigating indoors",
+  route_preview_title: "Route preview",
   estimated_path_length: "Estimated path length: about",
   meters: "meters",
   current_instruction_label: "Current instruction",
@@ -138,47 +138,67 @@ export const en = {
   planned_vs_obstacle_desc: "The highlighted path follows sample map data only. Live YOLO obstacle detection reports objects in the camera view and does not verify that the indoor path is clear or safe.",
   indoor_localization_note: "Localization is discrete: manual selection or QR markers update your known position only at that moment. Continuous indoor positioning is not implemented.",
 
+  // Destination Quick Actions & Floor Transition
+  chip_washroom: "Nearest Washroom",
+  chip_exit: "Nearest Exit",
+  chip_library: "Library",
+  chip_reception: "Reception",
+  chip_elevator: "Elevator",
+  chip_stairs: "Stairs",
+  floor_transition_prompt: "Staircase or elevator transition: Please confirm when you reach the next floor.",
+  btn_confirm_floor: "Confirm Floor Reached",
+  quick_dest_placeholder: "Type or speak destination (e.g., Library, Washroom)...",
+  btn_quick_search: "Find Destination",
+
   // QR Marker Scanner
   qr_scanner_title: "QR Marker Localization",
   qr_scanner_desc: "Scan a QR marker at your indoor location to calibrate your starting point.",
-  btn_start_qr: "📷 Scan QR Code",
-  btn_stop_qr: "⏹ Stop Scanner",
+  btn_start_qr: "Scan QR Code",
+  btn_stop_qr: "Stop Scanner",
 
   // SLAM Exploration Panel
-  slam_title: "Unmapped Indoor Exploration (SLAM)",
-  slam_badge: "🧭 Experimental Visual Odometry & Graph Mapping",
-  slam_desc: "Explore unmapped indoor environments using camera motion estimation and visual feature tracking to build a navigable topological graph.",
-  btn_start_slam: "🚀 Start Indoor Exploration",
-  btn_stop_slam: "⏹ Stop Exploration",
+  slam_title: "General-Purpose Indoor Visual SLAM & Graph Mapping",
+  slam_badge: "Visual Odometry & Navigable Graph Engine",
+  slam_desc: "Explore unmapped indoor environments using camera motion estimation, ORB keyframing, and visual feature tracking to build a navigable topological graph.",
+  btn_start_slam: "Start Indoor Exploration",
+  btn_stop_slam: "Stop Exploration",
   slam_tracking_confidence: "Tracking Confidence",
   slam_landmarks_mapped: "Landmarks Mapped",
   slam_keyframes: "Keyframes",
   slam_status: "SLAM Status",
   slam_guidance: "Guidance",
-  slam_disclaimer: "Visual SLAM relies on monocular camera odometry. Metric scale and absolute coordinates are estimated.",
+  slam_mode_exploration: "Exploration Mode (Real-Time Mapping)",
+  slam_mode_premapped: "Pre-Mapped Mode",
+  slam_label_placeholder: "Label this location (e.g., Library, Lab 2)...",
+  slam_btn_save_label: "Save Label",
+  slam_relocalized_badge: "Relocalized to Keyframe via ORB Matching",
+  slam_export_btn: "Export Map JSON",
+  slam_load_btn: "Load Map JSON",
+  slam_scale_approx: "Scale: approximate ~0.35m/step. Monocular camera lacks absolute metric scale.",
+  slam_disclaimer: "Visual SLAM relies on monocular camera odometry. Metric scale and absolute coordinates are estimated approximations.",
 
   // OCR Card
   ocr_title: "Read Text from Image (OCR)",
-  ocr_upload_label: "📤 Choose an image to extract text",
+  ocr_upload_label: "Choose an image to extract text",
   extracted_text_title: "Extracted Text:",
 
   // Static Object Detection Card
   static_detect_title: "Static Image Object Detection",
-  static_upload_label: "📤 Choose an image to detect objects",
+  static_upload_label: "Choose an image to detect objects",
   detected_objects_title: "Detected Objects:",
   confidence_label: "confidence",
 
   // Speech to Text Card
   stt_title: "Speech to Text",
   recording_in_progress: "Recording in progress... Speak into microphone.",
-  btn_start_recording: "🎙️ Start Recording",
-  btn_stop_recording: "⏹️ Stop Recording",
+  btn_start_recording: "Start Recording",
+  btn_stop_recording: "Stop Recording",
   transcribed_text_title: "Transcribed Text:",
 
   // Text to Speech Card
   tts_title: "Text to Speech",
   tts_placeholder: "Type something to speak...",
-  btn_speak_text: "🔉 Speak This Text",
+  btn_speak_text: "Speak This Text",
 
   // System & Spoken Messages
   messages: {
@@ -226,5 +246,38 @@ export const en = {
     routeProgress: "Remaining distance is {distance}. Estimated time is {duration}.",
     turnStepOf: "Turn {current} of {total}",
     segmentDistance: "Segment distance: {distance}"
-  }
+  },
+
+  // Redesign & Voice-First Hero
+  hero_prompt_title: "Where would you like to go?",
+  hero_prompt_subtitle: "Speak your destination or ask Dhristi to describe your surroundings.",
+  app_tagline_refined: "Navigate with confidence.",
+  app_heading_refined: "Your world, within reach",
+
+  // GPS Location Status
+  gps_locating: "Locating your position…",
+  gps_available: "Current location available",
+  gps_permission_required: "Location permission required. Please allow location access in browser.",
+  gps_unavailable: "Unable to determine your location. Check GPS signal.",
+  gps_timeout: "Location request timed out. Please retry.",
+  gps_refresh: "Refresh Location",
+
+  // Live Assistance
+  live_assistance_title: "Live Assistance & Surroundings",
+  live_assistance_disclaimer: "Obstacle detection is an assistive aid and does not guarantee an obstacle-free path. Always rely on primary mobility aids (white cane, guide dog) for personal safety.",
+  camera_active: "Camera Active",
+  camera_inactive: "Camera Offline",
+
+  // Advanced Tools & Testing
+  advanced_tools_title: "Advanced Tools & Diagnostics",
+  advanced_tools_subtitle: "Standalone testing tools for Speech-to-Text, Text-to-Speech synthesis, static image inspection, and offline simulation.",
+  demo_origin_test_btn: "[Testing Only] Set Demo GPS (Mysuru)",
+  demo_origin_active: "Demo GPS (Mysuru) Active for Testing",
+
+  // Help Dialog
+  help_dialog_title: "Supported Voice Commands",
+  help_dialog_close: "Close Help",
+  help_nav_category: "Navigation Commands",
+  help_vision_category: "Assistance & Perception",
+  help_lang_category: "Language & System"
 };

@@ -20,8 +20,8 @@ export const kn = {
   voice_nav_experience_title: "ಧ್ವನಿ-ಪ್ರಮುಖ ನ್ಯಾವಿಗೇಷನ್",
   voice_nav_experience_subtitle: "ಮಾತನಾಡುವ ಗಮ್ಯಸ್ಥಾನಗಳು ಮತ್ತು ಹಂತ-ಹಂತದ ಮಾರ್ಗದರ್ಶನಕ್ಕಾಗಿ ಮುಖ್ಯ ಇಂಟರ್ಫೇಸ್. ಪ್ರಾರಂಭಿಸಲು ಬಟನ್ ಒತ್ತಿ ಅಥವಾ Alt+V ಒತ್ತಿ.",
   voice_nav_perms_note: "ಸೂಚಿಸಿದಾಗ ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿಯನ್ನು ನೀಡಿ. ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶವು ಅಡಚಣೆ ಎಚ್ಚರಿಕೆಗಳನ್ನು ಸುಧಾರಿಸುತ್ತದೆ.",
-  enable_voice_nav: "🎙️ ಧ್ವನಿ ನ್ಯಾವಿಗೇಷನ್ ಪ್ರಾರಂಭಿಸಿ",
-  end_voice_nav: "⏹️ ಧ್ವನಿ ಅಧಿವೇಶನ ಮುಕ್ತಾಯಗೊಳಿಸಿ",
+  enable_voice_nav: "ಧ್ವನಿ ನ್ಯಾವಿಗೇಷನ್ ಪ್ರಾರಂಭಿಸಿ",
+  end_voice_nav: "ಧ್ವನಿ ಅಧಿವೇಶನ ಮುಕ್ತಾಯಗೊಳಿಸಿ",
   voice_session_status: "ಧ್ವನಿ ಅಧಿವೇಶನ",
   mic_status: "ಮೈಕ್ರೊಫೋನ್",
   mic_listening: "ಆಲಿಸುತ್ತಿದೆ",
@@ -30,7 +30,7 @@ export const kn = {
   text_fallback_label: "ಆಜ್ಞೆಯನ್ನು ಟೈಪ್ ಮಾಡಿ (ಕೀಬೋರ್ಡ್ ಪರ್ಯಾಯ):",
   text_fallback_placeholder: 'ಉದಾ: "ಸೆಂಟ್ರಲ್ ಪಾರ್ಕ್‌ಗೆ ಕರೆದೊಯ್ಯಿರಿ", "ನನ್ನ ಸುತ್ತಲೂ ಏನಿದೆ?"',
   send: "ಕಳುಹಿಸಿ",
-  repeat_onboarding: "🔊 ಧ್ವನಿ ಪರಿಚಯವನ್ನು ಮತ್ತೆ ಕೇಳಿ",
+  repeat_onboarding: "ಧ್ವನಿ ಪರಿಚಯವನ್ನು ಮತ್ತೆ ಕೇಳಿ",
 
   // Session States
   state_idle: "ನಿಷ್ಕ್ರಿಯ",
@@ -46,8 +46,8 @@ export const kn = {
 
   // Master Toolbar
   toolbar_label: "ಭಾಷೆ ಮತ್ತು ಧ್ವನಿ ನಿಯಂತ್ರಣ ಟೂಲ್‌ಬಾರ್",
-  enable_voice_commands: "🎙️ ಧ್ವನಿ ಆಜ್ಞೆಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ",
-  stop_voice_listening: "⏹️ ಧ್ವನಿ ಆಲಿಸುವಿಕೆಯನ್ನು ನಿಲ್ಲಿಸಿ",
+  enable_voice_commands: "ಧ್ವನಿ ಆಜ್ಞೆಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ",
+  stop_voice_listening: "ಧ್ವನಿ ಆಲಿಸುವಿಕೆಯನ್ನು ನಿಲ್ಲಿಸಿ",
   voice_control_active: "ಧ್ವನಿ ನಿಯಂತ್ರಣ ಸಕ್ರಿಯವಾಗಿದೆ",
   listening_for_commands: "ಆಜ್ಞೆಗಳಿಗಾಗಿ ಆಲಿಸಲಾಗುತ್ತಿದೆ... ಈಗ ಮಾತನಾಡಿ (ಅಥವಾ Alt+V ಒತ್ತಿ).",
   heard: "ಕೇಳಿಸಿದ್ದು",
@@ -86,10 +86,10 @@ export const kn = {
   status_processing: "ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತಿದೆ...",
   status_stopped: "ನಿಲ್ಲಿಸಲಾಗಿದೆ",
   status_error: "ದೋಷ",
-  btn_start_live: "▶️ ಲೈವ್ ಪತ್ತೆ ಪ್ರಾರಂಭಿಸಿ",
-  btn_stop_live: "⏹️ ಲೈವ್ ಪತ್ತೆ ನಿಲ್ಲಿಸಿ",
-  btn_read_signboard: "📖 ಈಗ ಬೋರ್ಡ್ / ಪಠ್ಯವನ್ನು ಓದಿ",
-  btn_what_front: "🧭 ನನ್ನ ಮುಂದೆ ಏನಿದೆ?",
+  btn_start_live: "ಲೈವ್ ಪತ್ತೆ ಪ್ರಾರಂಭಿಸಿ",
+  btn_stop_live: "ಲೈವ್ ಪತ್ತೆ ನಿಲ್ಲಿಸಿ",
+  btn_read_signboard: "ಈಗ ಬೋರ್ಡ್ / ಪಠ್ಯವನ್ನು ಓದಿ",
+  btn_what_front: "ನನ್ನ ಮುಂದೆ ಏನಿದೆ?",
   current_detections_title: "ಪ್ರಸ್ತುತ ಪತ್ತೆಯಾದ ವಸ್ತುಗಳು (ಸ್ವಯಂ ಧ್ವನಿ ಪ್ರಕಟಣೆ):",
   monitoring_no_obstacles: "YOLOv8 ಮೂಲಕ ವೀಕ್ಷಿಸಲಾಗುತ್ತಿದೆ... ಸದ್ಯಕ್ಕೆ ಯಾವುದೇ ಅಡಚಣೆಗಳಿಲ್ಲ.",
   meters_away: "ಮೀಟರ್ ದೂರದಲ್ಲಿ",
@@ -97,14 +97,14 @@ export const kn = {
   // Navigation Card (Outdoor & Indoor)
   nav_title: "ಧ್ವನಿ ನ್ಯಾವಿಗೇಷನ್",
   nav_subtitle: "ಹೊರಾಂಗಣ ಜಿಪಿಎಸ್ ಕಾಲ್ನಡಿಗೆ ಮಾರ್ಗಗಳು ಅಥವಾ ಒಳಾಂಗಣ ಮಹಡಿ ನಕ್ಷೆಗಳ ಹಂತ-ಹಂತದ ಮಾರ್ಗದರ್ಶನ ಆಯ್ಕೆಮಾಡಿ.",
-  mode_outdoor: "🛰 ಹೊರಾಂಗಣ ಜಿಪಿಎಸ್",
-  mode_indoor: "🏢 ಒಳಾಂಗಣ ಮಹಡಿಗಳು",
-  mode_slam: "🧭 ಒಳಾಂಗಣ ಸ್ಲ್ಯಾಮ್ ಮ್ಯಾಪಿಂಗ್",
+  mode_outdoor: "ಹೊರಾಂಗಣ ಜಿಪಿಎಸ್",
+  mode_indoor: "ಒಳಾಂಗಣ ಮಹಡಿಗಳು",
+  mode_slam: "ಒಳಾಂಗಣ ಸ್ಲ್ಯಾಮ್ ಮ್ಯಾಪಿಂಗ್",
   outdoor_prompt: '"Take me to [ಸ್ಥಳ]" ಅಥವಾ ಕೆಳಗೆ ಗಮ್ಯಸ್ಥಾನವನ್ನು ಟೈಪ್ ಮಾಡಿ:',
   destination_input_placeholder: "ಉದಾ: ಸೆಂಟ್ರಲ್ ಪಾರ್ಕ್, ಹತ್ತಿರದ ಮೆಟ್ರೋ ನಿಲ್ದಾಣ, ಆಸ್ಪತ್ರೆ...",
   destination_input_aria: "ಕಾಲ್ನಡಿಗೆ ಗಮ್ಯಸ್ಥಾನವನ್ನು ನಮೂದಿಸಿ",
-  btn_navigate: "🧭 ನ್ಯಾವಿಗೇಟ್ ಮಾಡಿ",
-  btn_stop_nav: "⏹️ ನ್ಯಾವಿಗೇಷನ್ ನಿಲ್ಲಿಸಿ",
+  btn_navigate: "ನ್ಯಾವಿಗೇಟ್ ಮಾಡಿ",
+  btn_stop_nav: "ನ್ಯಾವಿಗೇಷನ್ ನಿಲ್ಲಿಸಿ",
   navigating_to: "ಹೊರಾಂಗಣ ಜಿಪಿಎಸ್ — ತೆರಳುತ್ತಿರುವ ಸ್ಥಳ:",
   remaining_distance: "ಉಳಿದ ದೂರ:",
   estimated_time: "ಅಂದಾಜು ಸಮಯ:",
@@ -112,7 +112,7 @@ export const kn = {
   calculating: "ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತಿದೆ...",
 
   // Indoor Navigation Panel
-  indoor_badge: "🏢 ಒಳಾಂಗಣ ಮಹಡಿಗಳ ಮೋಡ್ — ನಕ್ಷೆ ಆಧಾರಿತ ಮಾರ್ಗಗಳು (ಜಿಪಿಎಸ್ ಅಲ್ಲ)",
+  indoor_badge: "ಒಳಾಂಗಣ ಮಹಡಿಗಳ ಮೋಡ್ — ನಕ್ಷೆ ಆಧಾರಿತ ಮಾರ್ಗಗಳು (ಜಿಪಿಎಸ್ ಅಲ್ಲ)",
   indoor_hint: "ನಿಮ್ಮ ಕಟ್ಟಡ ಮತ್ತು ಮಹಡಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ, ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಹಸ್ತಚಾಲಿತವಾಗಿ ಅಥವಾ QR ಮಾರ್ಕರ್ ಮೂಲಕ ಹೊಂದಿಸಿ, ಗಮ್ಯಸ್ಥಾನವನ್ನು ಆರಿಸಿ, ನಂತರ ಮಾರ್ಗದರ್ಶನವನ್ನು ಪ್ರಾರಂಭಿಸಿ.",
   building: "ಕಟ್ಟಡ",
   floor: "ಮಹಡಿ",
@@ -121,13 +121,13 @@ export const kn = {
   destination: "ಗಮ್ಯಸ್ಥಾನ",
   select_placeholder: "— ಆಯ್ಕೆಮಾಡಿ —",
   prefer_accessible: "ಸುಲಭ ಪ್ರವೇಶ ಮಾರ್ಗಗಳನ್ನು ಆದ್ಯತೆ ನೀಡಿ (ಮೆಟ್ಟಿಲುಗಳ ಬದಲಿಗೆ ಲಿಫ್ಟ್)",
-  btn_preview_route: "🗺 ಮಾರ್ಗ ಮುನ್ನೋಟ",
-  btn_start_indoor_nav: "▶ ನ್ಯಾವಿಗೇಷನ್ ಪ್ರಾರಂಭಿಸಿ",
-  btn_stop_indoor_nav: "⏹ ನ್ಯಾವಿಗೇಷನ್ ನಿಲ್ಲಿಸಿ",
-  btn_repeat_instruction: "🔁 ಸೂಚನೆಯನ್ನು ಮತ್ತೆ ಹೇಳಿ",
-  btn_next_step: "⏭ ಮುಂದಿನ ಹಂತ",
-  navigating_indoors_title: "🧭 ಒಳಾಂಗಣ ನ್ಯಾವಿಗೇಷನ್",
-  route_preview_title: "📋 ಮಾರ್ಗ ಮುನ್ನೋಟ",
+  btn_preview_route: "ಮಾರ್ಗ ಮುನ್ನೋಟ",
+  btn_start_indoor_nav: "ನ್ಯಾವಿಗೇಷನ್ ಪ್ರಾರಂಭಿಸಿ",
+  btn_stop_indoor_nav: "ನ್ಯಾವಿಗೇಷನ್ ನಿಲ್ಲಿಸಿ",
+  btn_repeat_instruction: "ಸೂಚನೆಯನ್ನು ಮತ್ತೆ ಹೇಳಿ",
+  btn_next_step: "ಮುಂದಿನ ಹಂತ",
+  navigating_indoors_title: "ಒಳಾಂಗಣ ನ್ಯಾವಿಗೇಷನ್",
+  route_preview_title: "ಮಾರ್ಗ ಮುನ್ನೋಟ",
   estimated_path_length: "ಅಂದಾಜು ಮಾರ್ಗದ ಉದ್ದ: ಸುಮಾರು",
   meters: "ಮೀಟರ್",
   current_instruction_label: "ಪ್ರಸ್ತುತ ಸೂಚನೆ",
@@ -138,47 +138,67 @@ export const kn = {
   planned_vs_obstacle_desc: "ಹೈಲೈಟ್ ಮಾಡಲಾದ ಮಾರ್ಗವು ನಕ್ಷೆ ಡೇಟಾವನ್ನು ಅನುಸರಿಸುತ್ತದೆ. ಕ್ಯಾಮೆರಾ ಅಡಚಣೆ ಪತ್ತೆಯು ಕ್ಯಾಮೆರಾ ಮುಂದಿನ ವಸ್ತುಗಳನ್ನು ಮಾತ್ರ ತಿಳಿಸುತ್ತದೆ.",
   indoor_localization_note: "ಸ್ಥಳೀಕರಣವು ಪ್ರತ್ಯೇಕವಾಗಿದೆ: ಹಸ್ತಚಾಲಿತ ಆಯ್ಕೆ ಅಥವಾ QR ಮಾರ್ಕರ್‌ಗಳು ಆ ಕ್ಷಣದ ಸ್ಥಳವನ್ನು ಮಾತ್ರ ನವೀಕರಿಸುತ್ತವೆ.",
 
+  // Destination Quick Actions & Floor Transition
+  chip_washroom: "ಹತ್ತಿರದ ಶೌಚಾಲಯ",
+  chip_exit: "ಹತ್ತಿರದ ನಿರ್ಗಮನ",
+  chip_library: "ಗ್ರಂಥಾಲಯ",
+  chip_reception: "ಸ್ವಾಗತ ಕೌಂಟರ್",
+  chip_elevator: "ಲಿಫ್ಟ್",
+  chip_stairs: "ಮೆಟ್ಟಿಲುಗಳು",
+  floor_transition_prompt: "ಮೆಟ್ಟಿಲು ಅಥವಾ ಲಿಫ್ಟ್ ಪರಿವರ್ತನೆ: ಮುಂದಿನ ಮಹಡಿಯನ್ನು ತಲುಪಿದಾಗ ದಯವಿಟ್ಟು ದೃಢೀಕರಿಸಿ.",
+  btn_confirm_floor: "ಮಹಡಿ ತಲುಪಿರುವುದನ್ನು ದೃಢೀಕರಿಸಿ",
+  quick_dest_placeholder: "ಗಮ್ಯಸ್ಥಾನವನ್ನು ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ (ಉದಾ. ಗ್ರಂಥಾಲಯ, ಶೌಚಾಲಯ)...",
+  btn_quick_search: "ಗಮ್ಯಸ್ಥಾನ ಹುಡುಕಿ",
+
   // QR Marker Scanner
   qr_scanner_title: "QR ಮಾರ್ಕರ್ ಸ್ಥಳೀಕರಣ",
   qr_scanner_desc: "ನಿಮ್ಮ ಪ್ರಾರಂಭಿಕ ಸ್ಥಳವನ್ನು ಹೊಂದಿಸಲು ಕೋಣೆಯ ಬಾಗಿಲಿನ ಮೇಲಿನ QR ಮಾರ್ಕರ್ ಅನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.",
-  btn_start_qr: "📷 QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
-  btn_stop_qr: "⏹ ಸ್ಕ್ಯಾನರ್ ನಿಲ್ಲಿಸಿ",
+  btn_start_qr: "QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+  btn_stop_qr: "ಸ್ಕ್ಯಾನರ್ ನಿಲ್ಲಿಸಿ",
 
   // SLAM Exploration Panel
-  slam_title: "ಮ್ಯಾಪ್ ಮಾಡದ ಒಳಾಂಗಣ ಅನ್ವೇಷಣೆ (SLAM)",
-  slam_badge: "🧭 ಪ್ರಾಯೋಗಿಕ ವಿಷುಯಲ್ ಓಡೋಮೆಟ್ರಿ ಮತ್ತು ಮ್ಯಾಪಿಂಗ್",
-  slam_desc: "ಹೊಸ ಒಳಾಂಗಣ ಪರಿಸರಗಳನ್ನು ಕ್ಯಾಮೆರಾ ಚಲನೆ ಅಂದಾಜಿನ ಮೂಲಕ ಅನ್ವೇಷಿಸಿ ಮತ್ತು ಸಂಚಾರ ನಕ್ಷೆಯನ್ನು ನಿರ್ಮಿಸಿ.",
-  btn_start_slam: "🚀 ಒಳಾಂಗಣ ಅನ್ವೇಷಣೆ ಪ್ರಾರಂಭಿಸಿ",
-  btn_stop_slam: "⏹ ಅನ್ವೇಷಣೆ ನಿಲ್ಲಿಸಿ",
+  slam_title: "ಸಾಮಾನ್ಯ ಒಳಾಂಗಣ ವಿಷುಯಲ್ ಸ್ಲ್ಯಾಮ್ ಮತ್ತು ಮ್ಯಾಪಿಂಗ್",
+  slam_badge: "ವಿಷುಯಲ್ ಓಡೋಮೆಟ್ರಿ ಮತ್ತು ಸಂಚಾರ ನಕ್ಷೆ ಎಂಜಿನ್",
+  slam_desc: "ಕ್ಯಾಮೆರಾ ಚಲನೆ ಅಂದಾಜು, ORB ಕೀಫ್ರೇಮ್‌ಗಳು ಮತ್ತು ಫೀಚರ್ ಟ್ರ್ಯಾಕಿಂಗ್ ಬಳಸಿ ಒಳಾಂಗಣ ಸಂಚಾರ ನಕ್ಷೆಯನ್ನು ನಿರ್ಮಿಸಿ.",
+  btn_start_slam: "ಒಳಾಂಗಣ ಅನ್ವೇಷಣೆ ಪ್ರಾರಂಭಿಸಿ",
+  btn_stop_slam: "ಅನ್ವೇಷಣೆ ನಿಲ್ಲಿಸಿ",
   slam_tracking_confidence: "ಟ್ರ್ಯಾಕಿಂಗ್ ವಿಶ್ವಾಸಾರ್ಹತೆ",
   slam_landmarks_mapped: "ಮ್ಯಾಪ್ ಮಾಡಿದ ಹೆಗ್ಗುರುತುಗಳು",
   slam_keyframes: "ಕೀಫ್ರೇಮ್‌ಗಳು",
   slam_status: "ಸ್ಲ್ಯಾಮ್ ಸ್ಥಿತಿ",
   slam_guidance: "ಮಾರ್ಗದರ್ಶನ",
+  slam_mode_exploration: "ಅನ್ವೇಷಣೆ ಮೋಡ್ (ಲೈವ್ ಮ್ಯಾಪಿಂಗ್)",
+  slam_mode_premapped: "ಪೂರ್ವ-ಮ್ಯಾಪ್ ಮಾಡಿದ ಮೋಡ್",
+  slam_label_placeholder: "ಈ ಸ್ಥಳವನ್ನು ಹೆಸರಿಸಿ (ಉದಾ. ಗ್ರಂಥಾಲಯ, ಲ್ಯಾಬ್)...",
+  slam_btn_save_label: "ಲೇಬಲ್ ಉಳಿಸಿ",
+  slam_relocalized_badge: "ಕೀಫ್ರೇಮ್‌ಗೆ ಮರುಸ್ಥಳೀಕರಣಗೊಂಡಿದೆ",
+  slam_export_btn: "ಮ್ಯಾಪ್ ಎಕ್ಸ್‌ಪೋರ್ಟ್ ಮಾಡಿ",
+  slam_load_btn: "ಮ್ಯಾಪ್ ಲೋಡ್ ಮಾಡಿ",
+  slam_scale_approx: "ಪ್ರಮಾಣ: ಅಂದಾಜು ~0.35ಮೀ/ಹೆಜ್ಜೆ. ಮೊನೊಕ್ಯುಲರ್ ಕ್ಯಾಮೆರಾದಲ್ಲಿ ನೇರ ಮೆಟ್ರಿಕ್ ಅಳತೆ ಇರುವುದಿಲ್ಲ.",
   slam_disclaimer: "ವಿಷುಯಲ್ ಸ್ಲ್ಯಾಮ್ ಮೊನೊಕ್ಯುಲರ್ ಕ್ಯಾಮೆರಾ ಮೇಲೆ ಆಧಾರಿತವಾಗಿದೆ. ಪ್ರಮಾಣ ಮತ್ತು ದೂರವು ಅಂದಾಜು.",
 
   // OCR Card
   ocr_title: "ಚಿತ್ರದಿಂದ ಪಠ್ಯವನ್ನು ಓದಿ (OCR)",
-  ocr_upload_label: "📤 ಪಠ್ಯವನ್ನು ಓದಲು ಚಿತ್ರವನ್ನು ಆರಿಸಿ",
+  ocr_upload_label: "ಪಠ್ಯವನ್ನು ಓದಲು ಚಿತ್ರವನ್ನು ಆರಿಸಿ",
   extracted_text_title: "ಹೊರತೆಗೆದ ಪಠ್ಯ:",
 
   // Static Object Detection Card
   static_detect_title: "ಸ್ಥಿರ ಚಿತ್ರದ ವಸ್ತು ಪತ್ತೆ",
-  static_upload_label: "📤 ವಸ್ತುಗಳನ್ನು ಪತ್ತೆಹಚ್ಚಲು ಚಿತ್ರವನ್ನು ಆರಿಸಿ",
+  static_upload_label: "ವಸ್ತುಗಳನ್ನು ಪತ್ತೆಹಚ್ಚಲು ಚಿತ್ರವನ್ನು ಆರಿಸಿ",
   detected_objects_title: "ಪತ್ತೆಯಾದ ವಸ್ತುಗಳು:",
   confidence_label: "ವಿಶ್ವಾಸಾರ್ಹತೆ",
 
   // Speech to Text Card
   stt_title: "ಮಾತಿನಿಂದ ಪಠ್ಯ (STT)",
   recording_in_progress: "ಧ್ವನಿಮುದ್ರಣ ಪ್ರಗತಿಯಲ್ಲಿದೆ... ಮೈಕ್ರೊಫೋನ್‌ನಲ್ಲಿ ಮಾತನಾಡಿ.",
-  btn_start_recording: "🎙️ ಧ್ವನಿಮುದ್ರಣ ಪ್ರಾರಂಭಿಸಿ",
-  btn_stop_recording: "⏹️ ಧ್ವನಿಮುದ್ರಣ ನಿಲ್ಲಿಸಿ",
+  btn_start_recording: "ಧ್ವನಿಮುದ್ರಣ ಪ್ರಾರಂಭಿಸಿ",
+  btn_stop_recording: "ಧ್ವನಿಮುದ್ರಣ ನಿಲ್ಲಿಸಿ",
   transcribed_text_title: "ಲಿಪ್ಯಂತರಿಸಿದ ಪಠ್ಯ:",
 
   // Text to Speech Card
   tts_title: "ಪಠ್ಯದಿಂದ ಮಾತು (TTS)",
   tts_placeholder: "ಮಾತನಾಡಲು ಏನನ್ನಾದರೂ ಟೈಪ್ ಮಾಡಿ...",
-  btn_speak_text: "🔉 ಈ ಪಠ್ಯವನ್ನು ಮಾತನಾಡಿ",
+  btn_speak_text: "ಈ ಪಠ್ಯವನ್ನು ಮಾತನಾಡಿ",
 
   // System & Spoken Messages
   messages: {
@@ -226,5 +246,38 @@ export const kn = {
     routeProgress: "ಉಳಿದಿರುವ ದೂರ {distance}. ಅಂದಾಜು ಸಮಯ {duration}.",
     turnStepOf: "ತಿರುವು {current} / {total}",
     segmentDistance: "ಭಾಗದ ದೂರ: {distance}"
-  }
+  },
+
+  // Redesign & Voice-First Hero
+  hero_prompt_title: "ನೀವು ಎಲ್ಲಿಗೆ ಹೋಗಲು ಬಯಸುತ್ತೀರಿ?",
+  hero_prompt_subtitle: "ನಿಮ್ಮ ಗಮ್ಯಸ್ಥಾನವನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ನಿಮ್ಮ ಸುತ್ತಮುತ್ತಲಿನ ಪರಿಸರವನ್ನು ವಿವರಿಸಲು ದೃಷ್ಟಿಗೆ ಕೇಳಿ.",
+  app_tagline_refined: "ಆತ್ಮವಿಶ್ವಾಸದಿಂದ ಮುನ್ನಡೆಯಿರಿ.",
+  app_heading_refined: "ನಿಮ್ಮ ಜಗತ್ತು, ನಿಮ್ಮ ತಲುಪಿನಲ್ಲಿ",
+
+  // GPS Location Status
+  gps_locating: "ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಪತ್ತೆಮಾಡಲಾಗುತ್ತಿದೆ…",
+  gps_available: "ಪ್ರಸ್ತುತ ಸ್ಥಳ ಲಭ್ಯವಿದೆ",
+  gps_permission_required: "ಸ್ಥಳದ ಅನುಮತಿ ಅಗತ್ಯವಿದೆ. ದಯವಿಟ್ಟು ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಅನುಮತಿಸಿ.",
+  gps_unavailable: "ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ನಿರ್ಧರಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ಜಿಪಿಎಸ್ ಸಿಗ್ನಲ್ ಪರಿಶೀಲಿಸಿ.",
+  gps_timeout: "ಸ್ಥಳದ ವಿನಂತಿಯ ಸಮಯ ಮೀರಿದೆ. ದಯವಿಟ್ಟು ಮರುಪ್ರಯತ್ನಿಸಿ.",
+  gps_refresh: "ಸ್ಥಳವನ್ನು ನವೀಕರಿಸಿ",
+
+  // Live Assistance
+  live_assistance_title: "ನೇರ ನೆರವು ಮತ್ತು ಪರಿಸರ ವಿವರಣೆ",
+  live_assistance_disclaimer: "ಅಡಚಣೆ ಪತ್ತೆಯು ಸಹಾಯಕ ಸಾಧನವಾಗಿದೆ ಮತ್ತು ಸುರಕ್ಷಿತ ಮಾರ್ಗವನ್ನು ಖಾತರಿಪಡಿಸುವುದಿಲ್ಲ. ನಿಮ್ಮ ಪ್ರಾಥಮಿಕ ಚಲನಶೀಲತಾ ಸಾಧನಗಳನ್ನು ಅವಲಂಬಿಸಿ.",
+  camera_active: "ಕ್ಯಾಮೆರಾ ಸಕ್ರಿಯ",
+  camera_inactive: "ಕ್ಯಾಮೆರಾ ಆಫ್",
+
+  // Advanced Tools & Testing
+  advanced_tools_title: "ಸುಧಾರಿತ ಪರಿಕರಗಳು ಮತ್ತು ಪರೀಕ್ಷೆ",
+  advanced_tools_subtitle: "ಧ್ವನಿಯಿಂದ ಪಠ್ಯ, ಪಠ್ಯದಿಂದ ಧ್ವನಿ ಸಂಶ್ಲೇಷಣೆ ಮತ್ತು ಆಫ್‌ಲೈನ್ ಪರೀಕ್ಷೆಗಾಗಿ ಸ್ವತಂತ್ರ ಪರಿಕರಗಳು.",
+  demo_origin_test_btn: "[ಪರೀಕ್ಷೆಗಾಗಿ ಮಾತ್ರ] ಡೆಮೊ ಜಿಪಿಎಸ್ ಹೊಂದಿಸಿ (ಮೈಸೂರು)",
+  demo_origin_active: "ಪರೀಕ್ಷೆಗಾಗಿ ಡೆಮೊ ಜಿಪಿಎಸ್ (ಮೈಸೂರು) ಸಕ್ರಿಯವಾಗಿದೆ",
+
+  // Help Dialog
+  help_dialog_title: "ಬೆಂಬಲಿತ ಧ್ವನಿ ಆಜ್ಞೆಗಳು",
+  help_dialog_close: "ಸಹಾಯ ಮುಚ್ಚಿ",
+  help_nav_category: "ನ್ಯಾವಿಗೇಷನ್ ಆಜ್ಞೆಗಳು",
+  help_vision_category: "ನೇರ ನೆರವು ಮತ್ತು ಗ್ರಹಿಕೆ",
+  help_lang_category: "ಭಾಷೆ ಮತ್ತು ವ್ಯವಸ್ಥೆ"
 };

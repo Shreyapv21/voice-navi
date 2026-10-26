@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  IconHeadphones,
+  IconMicrophone,
+  IconPlayerStop,
+  IconVolume,
+  IconSend
+} from "@tabler/icons-react";
+import {
   VoiceNavigationOrchestrator,
   VOICE_NAV_STATES
 } from "../utils/voiceNavigation/VoiceNavigationOrchestrator.js";
@@ -91,7 +98,7 @@ export function VoiceNavigationExperience({
     <section className="feature-card voice-nav-entry" aria-label={t("voice_nav_experience_title")}>
       <div className="card-header">
         <div className="card-icon" aria-hidden="true">
-          🎧
+          <IconHeadphones size={24} aria-hidden="true" style={{ color: "#38bdf8" }} />
         </div>
         <div>
           <h2 className="card-title">{t("voice_nav_experience_title")}</h2>
@@ -110,29 +117,35 @@ export function VoiceNavigationExperience({
           <button
             type="button"
             className="primary-btn success-btn"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             onClick={enableVoiceNavigation}
             aria-label={t("enable_voice_nav")}
             id="start-voice-nav-btn"
           >
-            {t("enable_voice_nav")}
+            <IconMicrophone size={18} aria-hidden="true" />
+            <span>{t("enable_voice_nav")}</span>
           </button>
         ) : (
           <button
             type="button"
             className="primary-btn danger-btn"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             onClick={disableVoiceNavigation}
             aria-label={t("end_voice_nav")}
           >
-            {t("end_voice_nav")}
+            <IconPlayerStop size={18} aria-hidden="true" />
+            <span>{t("end_voice_nav")}</span>
           </button>
         )}
         <button
           type="button"
           className="primary-btn accent-btn"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           onClick={repeatOnboarding}
           aria-label={t("repeat_onboarding")}
         >
-          {t("repeat_onboarding")}
+          <IconVolume size={18} aria-hidden="true" />
+          <span>{t("repeat_onboarding")}</span>
         </button>
       </div>
 
@@ -168,8 +181,15 @@ export function VoiceNavigationExperience({
             onKeyDown={(e) => e.key === "Enter" && submitTextFallback()}
             aria-label={t("text_fallback_label")}
           />
-          <button type="button" className="primary-btn" onClick={submitTextFallback} aria-label={t("send")}>
-            {t("send")}
+          <button
+            type="button"
+            className="primary-btn"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            onClick={submitTextFallback}
+            aria-label={t("send")}
+          >
+            <IconSend size={16} aria-hidden="true" />
+            <span>{t("send")}</span>
           </button>
         </div>
       </div>

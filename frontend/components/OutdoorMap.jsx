@@ -2,6 +2,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import {
+  IconMap,
+  IconMapPin,
+  IconLocation,
+  IconCrosshair,
+  IconWalk,
+  IconVolume,
+  IconArrowRight,
+  IconAlertTriangle,
+  IconTrain,
+  IconFirstAidKit,
+  IconBus,
+  IconPill,
+  IconBuilding
+} from "@tabler/icons-react";
 import { useLanguage } from "../utils/LanguageContext.jsx";
 import {
   formatLocalizedDistance,
@@ -20,11 +35,11 @@ const DEMO_ORIGIN = {
 
 // Preset demo destinations
 const DEMO_DESTINATIONS = [
-  { id: "railway_station", icon: "🚉", en: "Mysuru Railway Station", kn: "ರೈಲ್ವೆ ನಿಲ್ದಾಣ", hi: "रेलवे स्टेशन", ta: "இரயில் நிலையம்", te: "రైల్వే స్టేషన్", latitude: 12.3149, longitude: 76.6463 },
-  { id: "hospital", icon: "🏥", en: "Apollo BGS Hospital", kn: "ಹತ್ತಿರದ ಆಸ್ಪತ್ರೆ", hi: "निकटतम अस्पताल", ta: "அருகிலுள்ள மருத்துவமனை", te: "సమీప ఆసుపత్రి", latitude: 12.2982, longitude: 76.6268 },
-  { id: "bus_stop", icon: "🚌", en: "City Bus Stand", kn: "ಹತ್ತಿರದ ಬಸ್ ನಿಲ್ದಾಣ", hi: "निकटतम बस स्टॉप", ta: "அருகிலுள்ள பேருந்து நிறுத்தம்", te: "సమీప బస్ స్టాప్", latitude: 12.3086, longitude: 76.6552 },
-  { id: "pharmacy", icon: "💊", en: "MedPlus Pharmacy", kn: "ಹತ್ತಿರದ ಔಷಧಾಲಯ", hi: "निकटतम दवा दुकान", ta: "அருகிலுள்ள மருந்தகம்", te: "సమీప ఫಾರ್ಮసీ", latitude: 12.3125, longitude: 76.6510 },
-  { id: "palace", icon: "🏰", en: "Mysuru Palace", kn: "ಮೈಸೂರು ಅರಮನೆ", hi: "मैसूर महल", ta: "மைசூர் அரண்மனை", te: "మైసూర్ ప్యాలెస్", latitude: 12.3051, longitude: 76.6551 }
+  { id: "railway_station", IconComponent: IconTrain, en: "Mysuru Railway Station", kn: "ರೈಲ್ವೆ ನಿಲ್ದಾಣ", hi: "रेलवे स्टेशन", ta: "இரயில் நிலையம்", te: "రైల్వే స్టేషన్", latitude: 12.3149, longitude: 76.6463 },
+  { id: "hospital", IconComponent: IconFirstAidKit, en: "Apollo BGS Hospital", kn: "ಹತ್ತಿರದ ಆಸ್ಪತ್ರೆ", hi: "निकटतम अस्पताल", ta: "அருகிலுள்ள மருத்துவமனை", te: "సమీప ఆసుపత్రి", latitude: 12.2982, longitude: 76.6268 },
+  { id: "bus_stop", IconComponent: IconBus, en: "City Bus Stand", kn: "ಹತ್ತಿರದ ಬಸ್ ನಿಲ್ದಾಣ", hi: "निकटतम बस स्टॉप", ta: "அருகிலுள்ள பேருந்து நிறுத்தம்", te: "సమీప బస్ స్టాప్", latitude: 12.3086, longitude: 76.6552 },
+  { id: "pharmacy", IconComponent: IconPill, en: "MedPlus Pharmacy", kn: "ಹತ್ತಿರದ ಔಷಧಾಲಯ", hi: "निकटतम दवा दुकान", ta: "அருகிலுள்ள மருந்தகம்", te: "సమీప ఫಾರ್ಮసీ", latitude: 12.3125, longitude: 76.6510 },
+  { id: "palace", IconComponent: IconBuilding, en: "Mysuru Palace", kn: "ಮೈಸೂರು ಅರಮನೆ", hi: "मैसूर महल", ta: "மைசூர் அரண்மனை", te: "మైసూర్ ప్యాలెస్", latitude: 12.3051, longitude: 76.6551 }
 ];
 
 export function OutdoorMap({
@@ -39,9 +54,10 @@ export function OutdoorMap({
   errorMessage = "",
   detectionState = "CAMERA_OFF",
   liveDetections = [],
+  locationStatus = "IDLE",
+  onRequestLocation,
   onSelectCategory,
   onSelectDestination,
-  onUseDemoLocation,
   onNextStep,
   onRepeatInstruction
 }) {
@@ -72,12 +88,13 @@ export function OutdoorMap({
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    const initialLat = DEMO_ORIGIN.latitude;
-    const initialLng = DEMO_ORIGIN.longitude;
+    const initialLat = userLocation?.latitude || 12.9716;
+    const initialLng = userLocation?.longitude || 77.5946;
+    const initialZoom = userLocation ? 16 : 13;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
-      zoom: 15,
+      zoom: initialZoom,
       zoomControl: false
     });
 
@@ -111,6 +128,7 @@ export function OutdoorMap({
       map.remove();
       mapInstanceRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
   // 2. Update Map Markers, Polyline, and Viewport
@@ -152,6 +170,9 @@ export function OutdoorMap({
           .bindPopup(`<b>${userLocation.isDemo ? "📍 Demo Location" : "You (GPS)"}</b><br/>${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`)
           .addTo(map);
       }
+    } else if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
     }
 
     // Update Destination Marker
@@ -361,8 +382,9 @@ export function OutdoorMap({
 
       {/* Destination Quick Selector Pills */}
       <div>
-        <div style={{ fontSize: "0.95rem", color: "rgba(255, 255, 255, 0.85)", marginBottom: "8px", fontWeight: 600 }}>
-          📍 {language.startsWith("kn") ? "ತ್ವರಿತ ನಡಿಗೆ ಗಮ್ಯಸ್ಥಾನಗಳು:" : language.startsWith("hi") ? "त्वरित पैदल गंतव्य:" : language.startsWith("ta") ? "விரைவான நடைபயண இலக்குகள்:" : language.startsWith("te") ? "త్వరిత నడక గమ్యస్థానాలు:" : "Select Walking Destination:"}
+        <div style={{ fontSize: "0.95rem", color: "rgba(255, 255, 255, 0.85)", marginBottom: "8px", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          <IconMapPin size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
+          <span>{language.startsWith("kn") ? "ತ್ವರಿತ ನಡಿಗೆ ಗಮ್ಯಸ್ಥಾನಗಳು:" : language.startsWith("hi") ? "त्वरित पैदल गंतव्य:" : language.startsWith("ta") ? "விரைவான நடைபயண இலக்குகள்:" : language.startsWith("te") ? "త్వరిత నడక గమ్యస్థానాలు:" : "Select Walking Destination:"}</span>
         </div>
         <div className="category-pill-row" role="group" aria-label="Walking destinations">
           {DEMO_DESTINATIONS.map((dest) => (
@@ -370,6 +392,7 @@ export function OutdoorMap({
               key={dest.id}
               type="button"
               className="category-pill"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               onClick={() => {
                 if (onSelectDestination) {
                   onSelectDestination(dest);
@@ -379,34 +402,49 @@ export function OutdoorMap({
               }}
               aria-label={`Walk to ${dest.en}`}
             >
-              <span aria-hidden="true">{dest.icon}</span> {getLabel(dest)}
+              <dest.IconComponent size={16} aria-hidden="true" />
+              <span>{getLabel(dest)}</span>
             </button>
           ))}
-
-          {/* Explicit Demo GPS Location Button */}
-          <button
-            type="button"
-            className="category-pill demo-pill"
-            onClick={() => onUseDemoLocation?.(DEMO_ORIGIN)}
-            aria-label="Use demo origin in Mysuru"
-          >
-            🎯 {language.startsWith("kn") ? "ಡೆಮೊ ಜಿಪಿಎಸ್ ಬಳಸಿ" : language.startsWith("hi") ? "डेमो जीपीएस उपयोग करें" : "Use Demo GPS (Mysuru)"}
-          </button>
         </div>
       </div>
 
       <div className="outdoor-map-header">
         <div>
-          <strong style={{ fontSize: "1.05rem" }}>
-            🗺️ {destinationName ? destinationName : (language.startsWith("kn") ? "ಓಪನ್‌ಸ್ಟ್ರೀಟ್‌ಮ್ಯಾಪ್ ಹೊರಾಂಗಣ ನಕ್ಷೆ" : language.startsWith("hi") ? "ओपनस्ट्रीटमैप आउटडोर नक्शा" : "OpenStreetMap Walking Map (Leaflet)")}
+          <strong style={{ fontSize: "1.05rem", display: "flex", alignItems: "center", gap: 8 }}>
+            <IconMap size={20} aria-hidden="true" style={{ color: "#38bdf8" }} />
+            <span>{destinationName ? destinationName : (language.startsWith("kn") ? "ಓಪನ್‌ಸ್ಟ್ರೀಟ್‌ಮ್ಯಾಪ್ ಹೊರಾಂಗಣ ನಕ್ಷೆ" : language.startsWith("hi") ? "ओपनस्ट्रीटमैप आउटडोर नक्शा" : "OpenStreetMap Walking Map (Leaflet)")}</span>
           </strong>
           {destinationAddress && (
             <div style={{ fontSize: "0.85rem", opacity: 0.8, marginTop: 2 }}>{destinationAddress}</div>
           )}
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-          <span className="status-badge status-active" style={{ fontSize: "0.85rem" }}>
-            {userLocation?.isDemo ? "📍 Demo Location Active" : userLocation ? "📡 GPS Active" : "📡 Ready"}
+          <span
+            className={`status-badge ${
+              userLocation && !userLocation.isDemo
+                ? "status-active"
+                : locationStatus === "LOCATING"
+                ? "status-processing"
+                : userLocation?.isDemo
+                ? "status-processing"
+                : "status-inactive"
+            }`}
+            style={{ fontSize: "0.85rem" }}
+          >
+            {locationStatus === "LOCATING"
+              ? "Locating your position…"
+              : userLocation?.isDemo
+              ? "Demo GPS Active"
+              : userLocation
+              ? "GPS Active"
+              : locationStatus === "DENIED"
+              ? "Location Permission Required"
+              : locationStatus === "UNAVAILABLE"
+              ? "GPS Signal Unavailable"
+              : locationStatus === "TIMEOUT"
+              ? "GPS Request Timed Out"
+              : "Location Inactive"}
           </span>
           {isNavigating && (
             <span
@@ -422,12 +460,12 @@ export function OutdoorMap({
               style={{ fontSize: "0.85rem" }}
             >
               {detectionState === "DETECTING"
-                ? "👁️ Obstacle Camera Active"
+                ? "Obstacle Camera Active"
                 : detectionState === "STARTING"
-                ? "👁️ Starting Camera..."
+                ? "Starting Camera..."
                 : detectionState === "PAUSED"
-                ? "⏸️ Detection Paused"
-                : "⚠️ Camera Offline"}
+                ? "Detection Paused"
+                : "Camera Offline"}
             </span>
           )}
         </div>
@@ -437,27 +475,46 @@ export function OutdoorMap({
       <div className="leaflet-map-wrap">
         <div className="map-floating-bar">
           <div className="map-badge">
-            {userLocation?.isDemo
-              ? "📍 Demo: Mysuru City Center"
+            {locationStatus === "LOCATING"
+              ? "Locating your position…"
+              : userLocation?.isDemo
+              ? "Demo Origin: Mysuru"
               : userLocation
-              ? `Lat: ${userLocation.latitude.toFixed(4)}, Lng: ${userLocation.longitude.toFixed(4)}`
-              : "Click map to set destination"}
+              ? `Lat: ${userLocation.latitude.toFixed(4)}, Lng: ${userLocation.longitude.toFixed(4)}${userLocation.accuracy ? ` (±${Math.round(userLocation.accuracy)}m)` : ""}`
+              : "Click map or speak destination"}
           </div>
-          <button
-            type="button"
-            className="map-recenter-btn"
-            onClick={handleRecenter}
-            aria-label="Recenter map"
-          >
-            🎯 {language.startsWith("kn") ? "ಮರುಕೇಂದ್ರೀಕರಿಸಿ" : "Recenter"}
-          </button>
+          <div style={{ display: "flex", gap: "6px" }}>
+            {onRequestLocation && (
+              <button
+                type="button"
+                className="map-recenter-btn"
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                onClick={onRequestLocation}
+                title="Locate me / Refresh GPS"
+                aria-label="Refresh GPS position"
+              >
+                <IconLocation size={14} aria-hidden="true" />
+                <span>{language.startsWith("kn") ? "ಜಿಪಿಎಸ್" : "GPS" }</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="map-recenter-btn"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+              onClick={handleRecenter}
+              aria-label="Recenter map"
+            >
+              <IconCrosshair size={14} aria-hidden="true" />
+              <span>{language.startsWith("kn") ? "ಮರುಕೇಂದ್ರೀಕರಿಸಿ" : "Recenter" }</span>
+            </button>
+          </div>
         </div>
 
         <div ref={mapContainerRef} className="leaflet-map-canvas" aria-label="Interactive Leaflet Map" />
       </div>
 
       <div style={{ marginTop: "8px", fontSize: "0.82rem", opacity: 0.7, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
-        <span>💡 Click anywhere on the map to set a custom destination.</span>
+        <span>Click anywhere on the map to set a custom destination.</span>
         <span>Powered by OpenStreetMap &amp; FOSSGIS OSRM Foot</span>
       </div>
 
@@ -466,8 +523,9 @@ export function OutdoorMap({
         <div className="route-summary-panel" aria-live="polite">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
             <div>
-              <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#00f2fe" }}>
-                🚶 {destinationName || "Active Route"}
+              <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#00f2fe", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <IconWalk size={20} aria-hidden="true" />
+                <span>{destinationName || "Active Route"}</span>
               </span>
               <div style={{ display: "flex", gap: "18px", marginTop: "4px", fontSize: "0.95rem" }}>
                 <span><strong>{t("remaining_distance") || "Distance"}:</strong> {routeData?.distanceMeters ? formatLocalizedDistance(routeData.distanceMeters, language) : (t("calculating") || "Calculating...")}</span>
@@ -482,22 +540,24 @@ export function OutdoorMap({
                 <button
                   type="button"
                   className="primary-btn"
-                  style={{ padding: "6px 12px", fontSize: "0.85rem" }}
+                  style={{ padding: "6px 12px", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 6 }}
                   onClick={onRepeatInstruction}
                   aria-label="Repeat last instruction"
                 >
-                  🔊 {t("repeat") || "Repeat"}
+                  <IconVolume size={16} aria-hidden="true" />
+                  <span>{t("repeat") || "Repeat"}</span>
                 </button>
               )}
               {onNextStep && (
                 <button
                   type="button"
                   className="primary-btn accent-btn"
-                  style={{ padding: "6px 12px", fontSize: "0.85rem" }}
+                  style={{ padding: "6px 12px", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: 6 }}
                   onClick={onNextStep}
                   aria-label="Advance to next step"
                 >
-                  ▶ {t("next_step") || "Next Step"}
+                  <IconArrowRight size={16} aria-hidden="true" />
+                  <span>{t("next_step") || "Next Step"}</span>
                 </button>
               )}
             </div>
@@ -534,7 +594,10 @@ export function OutdoorMap({
               role="alert"
               aria-live="polite"
             >
-              <strong>⚠️ {language.startsWith("kn") ? "ಮಾರ್ಗದಲ್ಲಿ ಅಡಚಣೆ ಪತ್ತೆಯಾಗಿದೆ:" : language.startsWith("hi") ? "रास्ते में बाधा का पता चला:" : "Obstacle in view:"}</strong>{" "}
+              <strong style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <IconAlertTriangle size={16} aria-hidden="true" style={{ color: "#ef4444" }} />
+                <span>{language.startsWith("kn") ? "ಮಾರ್ಗದಲ್ಲಿ ಅಡಚಣೆ ಪತ್ತೆಯಾಗಿದೆ:" : language.startsWith("hi") ? "रास्ते में बाधा का पता चला:" : "Obstacle in view:"}</span>
+              </strong>{" "}
               {liveDetections
                 .slice(0, 2)
                 .map((d) => `${d.class_name}${d.distance ? ` (${d.distance}m)` : ""}${d.direction ? ` ${d.direction}` : ""}`)
@@ -545,8 +608,9 @@ export function OutdoorMap({
       )}
 
       {errorMessage && status === "ERROR" && (
-        <div className="result-box" style={{ borderColor: "#f44336", color: "#fca5a5", marginTop: "12px" }}>
-          ⚠️ {errorMessage}
+        <div className="result-box" style={{ borderColor: "#f44336", color: "#fca5a5", marginTop: "12px", display: "flex", alignItems: "center", gap: 8 }}>
+          <IconAlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+          <span>{errorMessage}</span>
         </div>
       )}
     </div>

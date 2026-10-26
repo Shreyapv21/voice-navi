@@ -14,6 +14,7 @@ export default defineConfig({
       '/uploads': 'http://127.0.0.1:8000',
       '/live': 'http://127.0.0.1:8000',
       '/slam': 'http://127.0.0.1:8000',
+      '/perception': 'http://127.0.0.1:8000',
       '/api': 'http://127.0.0.1:5000',
     },
   },

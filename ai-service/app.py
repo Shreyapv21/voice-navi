@@ -1,5 +1,5 @@
 # app.py
-from fastapi import FastAPI, UploadFile, File, APIRouter, WebSocket, WebSocketDisconnect 
+from fastapi import FastAPI, UploadFile, File, APIRouter, WebSocket, WebSocketDisconnect, Form 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -28,6 +28,7 @@ from utils.object_detection import detect_objects
 from utils.ocr_utils import extract_text_from_image, text_to_speech
 from utils.live_detection import start_live_detection, stop_live_detection, running, get_current_detections, process_frame
 from utils.slam_engine import slam_instance
+from utils.indoor_perception import perception_engine
 
 router = APIRouter()
 
@@ -317,9 +318,34 @@ async def read_text(file: UploadFile = File(...)):
 # ---------------- SLAM Endpoints ----------------
 class SLAMRouteRequest(BaseModel):
     destination: str
+    start_id: Optional[str] = None
+
+class SLAMLabelRequest(BaseModel):
+    target_id: Optional[str] = "current"
+    label: str
+    type: Optional[str] = "room"
+
+class SLAMMapLoadRequest(BaseModel):
+    map_data: dict
+
+@app.get("/slam/health/")
+@app.get("/slam/health")
+def slam_health():
+    return {
+        "status": "ok",
+        "service": "Visual SLAM Engine",
+        "frame_count": slam_instance.frame_count,
+        "state": slam_instance.state,
+        "keyframes": len(slam_instance.keyframes),
+        "landmarks": len(slam_instance.observed_landmarks)
+    }
 
 @app.post("/slam/frame/")
-async def slam_process_frame(file: UploadFile = File(...)):
+@app.post("/slam/frame")
+async def slam_process_frame(
+    file: UploadFile = File(...),
+    ocr_text: Optional[str] = Form(None)
+):
     """
     Process single camera frame through Visual SLAM Engine (Visual Odometry & Landmark Graph Mapping).
     """
@@ -331,26 +357,42 @@ async def slam_process_frame(file: UploadFile = File(...)):
         if frame is None:
             return JSONResponse({"status": "error", "message": "Invalid image frame"}, status_code=400)
 
-        # Optional concurrent YOLO detection for landmarks (doors, chairs, stairs)
+        # Real-time indoor object recognition and structural perception
         try:
-            detections = process_frame(frame)
-        except Exception:
+            perception_res = perception_engine.process(frame, ocr_text=ocr_text)
+            detections = perception_res.get("objects", [])
+        except Exception as pe:
+            print(f"Perception error: {pe}")
+            perception_res = {"objects": [], "structural_perception": {}, "model_info": {"status": "error"}}
             detections = []
 
-        result = slam_instance.process_frame(frame, detected_objects=detections)
+        structural = perception_res.get("structural_perception", {})
+        result = slam_instance.process_frame(
+            frame,
+            detected_objects=detections,
+            structural_perception=structural,
+            ocr_text=ocr_text
+        )
+        result["perception"] = {
+            "objects": detections,
+            "structural_perception": perception_res.get("structural_perception", {}),
+            "model_info": perception_res.get("model_info", {})
+        }
         return JSONResponse(result)
     except Exception as e:
         print(f"SLAM error: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 @app.get("/slam/status/")
+@app.get("/slam/status")
 def slam_get_status():
     """
-    Get current SLAM pose, tracking confidence, keyframes, and explored graph.
+    Get current SLAM pose, tracking confidence, keyframes, scale info, and explored graph.
     """
     return JSONResponse(slam_instance._build_status())
 
 @app.post("/slam/reset/")
+@app.post("/slam/reset")
 def slam_reset():
     """
     Reset Visual SLAM exploration session.
@@ -359,11 +401,57 @@ def slam_reset():
     return {"status": "success", "message": "SLAM mapping session reset to origin."}
 
 @app.post("/slam/route/")
+@app.post("/slam/route")
 def slam_plan_route(req: SLAMRouteRequest):
     """
-    Plan a walking route on the explored topological graph towards target landmark.
+    Plan a walking route on the explored topological graph towards target landmark with turn angles.
     """
-    result = slam_instance.plan_route_to_target(req.destination)
+    result = slam_instance.plan_route_to_target(req.destination, start_node_id=req.start_id)
+    return JSONResponse(result)
+
+@app.post("/slam/label/")
+@app.post("/slam/label")
+def slam_label_location(req: SLAMLabelRequest):
+    """
+    Explicitly label a node, landmark, or current position with a meaningful destination name.
+    """
+    target = req.target_id or "current"
+    loc_type = req.type or "room"
+    result = slam_instance.label_location(target, req.label, location_type=loc_type)
+    return JSONResponse(result)
+
+@app.get("/slam/map/")
+@app.get("/slam/map")
+def slam_export_map():
+    """
+    Export current explored SLAM map.
+    """
+    return JSONResponse(slam_instance.export_map())
+
+@app.post("/slam/map/load/")
+def slam_load_map(req: SLAMMapLoadRequest):
+    """
+    Load a pre-mapped indoor environment or saved SLAM graph.
+    """
+    result = slam_instance.load_map(req.map_data)
     return JSONResponse(result)
 
 
+
+
+@app.post("/perception/frame/")
+@app.post("/perception/frame")
+async def perception_only_frame(
+    file: UploadFile = File(...),
+    ocr_text: Optional[str] = Form(None)
+):
+    try:
+        content = await file.read()
+        nparr = np.frombuffer(content, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return JSONResponse({"status": "error", "message": "Invalid image frame"}, status_code=400)
+        res = perception_engine.process(frame, ocr_text=ocr_text)
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

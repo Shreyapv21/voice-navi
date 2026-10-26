@@ -20,8 +20,8 @@ export const ta = {
   voice_nav_experience_title: "குரல்-முதன்மை வழிசெலுத்தல்",
   voice_nav_experience_subtitle: "பேசப்படும் சேருமிடங்கள் மற்றும் படிப்படியான வழிகாட்டலுக்கான முதன்மை இடைமுகம். தொடங்க பொத்தானை அழுத்தவும் அல்லது Alt+V அழுத்தவும்.",
   voice_nav_perms_note: "கேட்கப்படும்போது மைக்ரோஃபோன் அனுமதியை வழங்கவும். கேமரா அணுகல் தடை எச்சரிக்கைகளை மேம்படுத்துகிறது.",
-  enable_voice_nav: "🎙️ குரல் வழிசெலுத்தலைத் தொடங்கு",
-  end_voice_nav: "⏹️ குரல் அமர்வை முடிக்கவும்",
+  enable_voice_nav: "குரல் வழிசெலுத்தலைத் தொடங்கு",
+  end_voice_nav: "குரல் அமர்வை முடிக்கவும்",
   voice_session_status: "குரல் அமர்வு",
   mic_status: "மைக்ரோஃபோன்",
   mic_listening: "கேட்கிறது",
@@ -30,7 +30,7 @@ export const ta = {
   text_fallback_label: "கட்டளையைத் தட்டச்சு செய்க (விசைப்பலகை மாற்று):",
   text_fallback_placeholder: 'எ.கா: "சென்ட்ரல் பார்க்கிற்கு அழைத்துச் செல்", "என் அருகில் என்ன இருக்கிறது?"',
   send: "அனுப்பு",
-  repeat_onboarding: "🔊 குரல் அறிமுகத்தை மீண்டும் கேள்",
+  repeat_onboarding: "குரல் அறிமுகத்தை மீண்டும் கேள்",
 
   // Session States
   state_idle: "செயலற்றது",
@@ -46,8 +46,8 @@ export const ta = {
 
   // Master Toolbar
   toolbar_label: "மொழி மற்றும் குரல் கட்டுப்பாடு கருவிப்பட்டை",
-  enable_voice_commands: "🎙️ குரல் கட்டளைகளை இயக்கு",
-  stop_voice_listening: "⏹️ குரல் கேட்பதை நிறுத்து",
+  enable_voice_commands: "குரல் கட்டளைகளை இயக்கு",
+  stop_voice_listening: "குரல் கேட்பதை நிறுத்து",
   voice_control_active: "குரல் கட்டுப்பாடு செயலில் உள்ளது",
   listening_for_commands: "கட்டளைகளுக்காகக் கேட்கிறது... இப்போது பேசுங்கள் (அல்லது Alt+V அழுத்தவும்).",
   heard: "கேட்டது",
@@ -86,10 +86,10 @@ export const ta = {
   status_processing: "செயலாக்குகிறது...",
   status_stopped: "நிறுத்தப்பட்டது",
   status_error: "பிழை",
-  btn_start_live: "▶️ நேரலை கண்டறிதலைத் தொடங்கு",
-  btn_stop_live: "⏹️ நேரலை கண்டறிதலை நிறுத்து",
-  btn_read_signboard: "📖 பலகை / உரையை இப்போது படி",
-  btn_what_front: "🧭 என் முன்னால் என்ன உள்ளது?",
+  btn_start_live: "நேரலை கண்டறிதலைத் தொடங்கு",
+  btn_stop_live: "நேரலை கண்டறிதலை நிறுத்து",
+  btn_read_signboard: "பலகை / உரையை இப்போது படி",
+  btn_what_front: "என் முன்னால் என்ன உள்ளது?",
   current_detections_title: "கண்டறியப்பட்ட பொருட்கள் (தானியங்கி குரல்):",
   monitoring_no_obstacles: "YOLOv8 மூலம் கண்காணிக்கப்படுகிறது... தடைகள் எதுவும் கண்டறியப்படவில்லை.",
   meters_away: "மீட்டர் தொலைவில்",
@@ -97,14 +97,14 @@ export const ta = {
   // Navigation Card (Outdoor & Indoor)
   nav_title: "குரல் வழிசெலுத்தல்",
   nav_subtitle: "வெளிப்புற ஜிபிஎஸ் நடைப்பாதைகள் அல்லது உட்புற மாடி வரைபடங்களுடன் படிப்படியான வழிகாட்டலைத் தேர்வுசெய்யவும்.",
-  mode_outdoor: "🛰 வெளிப்புற ஜிபிஎஸ்",
-  mode_indoor: "🏢 உட்புற மாடிகள்",
-  mode_slam: "🧭 உட்புற ஸ்லாம் வரைபடம்",
+  mode_outdoor: "வெளிப்புற ஜிபிஎஸ்",
+  mode_indoor: "உட்புற மாடிகள்",
+  mode_slam: "உட்புற ஸ்லாம் வரைபடம்",
   outdoor_prompt: '"என்னை [இடம்] அழைத்துச் செல்" என்று சொல்லுங்கள் அல்லது கீழே தட்டச்சு செய்யவும்:',
   destination_input_placeholder: "எ.கா: சென்ட்ரல் பார்க், அருகிலுள்ள மெட்ரோ நிலையம், மருத்துவமனை...",
   destination_input_aria: "நடக்கும் சேருமிடத்தை உள்ளிடவும்",
-  btn_navigate: "🧭 வழிசெலுத்து",
-  btn_stop_nav: "⏹️ வழிசெலுத்தலை நிறுத்து",
+  btn_navigate: "வழிசெலுத்து",
+  btn_stop_nav: "வழிசெலுத்தலை நிறுத்து",
   navigating_to: "வெளிப்புற ஜிபிஎஸ் — சேருமிடம்:",
   remaining_distance: "மீதமுள்ள தூரம்:",
   estimated_time: "மதிப்பிடப்பட்ட நேரம்:",
@@ -112,7 +112,7 @@ export const ta = {
   calculating: "கணக்கிடுகிறது...",
 
   // Indoor Navigation Panel
-  indoor_badge: "🏢 உட்புற மாடிகள் முறை — வரைபட அடிப்படையிலான பாதைகள் (ஜிபிஎஸ் அல்ல)",
+  indoor_badge: "உட்புற மாடிகள் முறை — வரைபட அடிப்படையிலான பாதைகள் (ஜிபிஎஸ் அல்ல)",
   indoor_hint: "உங்கள் கட்டிடம் மற்றும் மாடியைத் தேர்வுசெய்து, உங்கள் தற்போதைய இருப்பிடத்தை கைமுறையாக அல்லது க்யூஆர் குறியீடு மூலம் அமைத்து, வழிகாட்டலைத் தொடங்கவும்.",
   building: "கட்டிடம்",
   floor: "மாடி",
@@ -121,13 +121,13 @@ export const ta = {
   destination: "சேருமிடம்",
   select_placeholder: "— தேர்ந்தெடுக்கவும் —",
   prefer_accessible: "எளிதான அணுகல் பாதைகளுக்கு முன்னுரிமை கொடுங்கள் (படிகளுக்குப் பதிலாக மின்தூக்கி)",
-  btn_preview_route: "🗺 பாதையை முன்னோட்டமிடு",
-  btn_start_indoor_nav: "▶ வழிசெலுத்தலைத் தொடங்கு",
-  btn_stop_indoor_nav: "⏹ வழிசெலுத்தலை நிறுத்து",
-  btn_repeat_instruction: "🔁 வழிமுறையை மீண்டும் சொல்",
-  btn_next_step: "⏭ அடுத்த படி",
-  navigating_indoors_title: "🧭 உட்புற வழிசெலுத்தல்",
-  route_preview_title: "📋 பாதை முன்னோட்டம்",
+  btn_preview_route: "பாதையை முன்னோட்டமிடு",
+  btn_start_indoor_nav: "வழிசெலுத்தலைத் தொடங்கு",
+  btn_stop_indoor_nav: "வழிசெலுத்தலை நிறுத்து",
+  btn_repeat_instruction: "வழிமுறையை மீண்டும் சொல்",
+  btn_next_step: "அடுத்த படி",
+  navigating_indoors_title: "உட்புற வழிசெலுத்தல்",
+  route_preview_title: "பாதை முன்னோட்டம்",
   estimated_path_length: "மதிப்பிடப்பட்ட பாதை நீளம்: சுமார்",
   meters: "மீட்டர்",
   current_instruction_label: "தற்போதைய வழிமுறை",
@@ -138,47 +138,67 @@ export const ta = {
   planned_vs_obstacle_desc: "காட்டப்படும் பாதை மாதிரி வரைபடத் தரவைப் பின்பற்றுகிறது. கேமரா தடை கண்டறிதல் கேமரா முன்னால் உள்ளவற்றை மட்டுமே தெரிவிக்கும்.",
   indoor_localization_note: "இருப்பிடக் கண்டறிதல் அந்தந்த தருணத்தில் மட்டுமே புதுப்பிக்கப்படும். தொடர்ச்சியான நிலைப்படுத்தல் இல்லை.",
 
+  // Destination Quick Actions & Floor Transition
+  chip_washroom: "அருகிலுள்ள கழிப்பறை",
+  chip_exit: "அருகிலுள்ள வெளியேறும் வழி",
+  chip_library: "நூலகம்",
+  chip_reception: "வரவேற்பறை",
+  chip_elevator: "மின்தூக்கி",
+  chip_stairs: "படிகள்",
+  floor_transition_prompt: "படிகள் அல்லது மின்தூக்கி மாற்றம்: அடுத்த தளத்தை அடைந்ததும் உறுதிப்படுத்தவும்.",
+  btn_confirm_floor: "தளம் வந்தடைந்ததை உறுதிப்படுத்து",
+  quick_dest_placeholder: "சேருமிடத்தைத் தட்டச்சு செய்யவும் அல்லது பேசவும் (எ.கா. நூலகம், கழிப்பறை)...",
+  btn_quick_search: "சேருமிடம் தேடு",
+
   // QR Marker Scanner
   qr_scanner_title: "க்யூஆர் மார்க்கர் இருப்பிடம்",
   qr_scanner_desc: "உங்கள் தொடக்க இருப்பிடத்தை அமைக்க கதவின் மேலுள்ள க்யூஆர் குறியீட்டை ஸ்கேன் செய்யவும்.",
-  btn_start_qr: "📷 க்யூஆர் குறியீட்டை ஸ்கேன் செய்",
-  btn_stop_qr: "⏹ ஸ்கேனரை நிறுத்து",
+  btn_start_qr: "க்யூஆர் குறியீட்டை ஸ்கேன் செய்",
+  btn_stop_qr: "ஸ்கேனரை நிறுத்து",
 
   // SLAM Exploration Panel
-  slam_title: "வரைபடமில்லா உட்புற ஆய்வு (SLAM)",
-  slam_badge: "🧭 சோதனை காட்சி ஓடோமெட்ரி மற்றும் மேப்பிங்",
+  slam_title: "பொது உட்புற காட்சி ஸ்லாம் மற்றும் வரைபடம்",
+  slam_badge: "காட்சி ஓடோமெட்ரி மற்றும் வழிசெலுத்தல் வரைபட இயந்திரம்",
   slam_desc: "புதிய உட்புற சூழல்களை கேமரா இயக்கம் மூலம் ஆய்வு செய்து நடக்கும் வழிகளை வரைபடமாக்குங்கள்.",
-  btn_start_slam: "🚀 உட்புற ஆய்வைத் தொடங்கு",
-  btn_stop_slam: "⏹ ஆய்வை நிறுத்து",
+  btn_start_slam: "உட்புற ஆய்வைத் தொடங்கு",
+  btn_stop_slam: "ஆய்வை நிறுத்து",
   slam_tracking_confidence: "கண்காணிப்பு நம்பகத்தன்மை",
   slam_landmarks_mapped: "வரைபடமாக்கப்பட்ட அடையாளங்கள்",
   slam_keyframes: "முக்கிய பிரேம்கள்",
   slam_status: "ஸ்லாம் நிலை",
   slam_guidance: "வழிகாட்டல்",
+  slam_mode_exploration: "ஆய்வு பயன்முறை (நேரலை மேப்பிங்)",
+  slam_mode_premapped: "முன் வரைபட பயன்முறை",
+  slam_label_placeholder: "இந்த இடத்தை பெயரிடுங்கள் (எ.கா. நூலகம், ஆய்வகம்)...",
+  slam_btn_save_label: "லேபிளைச் சேமி",
+  slam_relocalized_badge: "கீபிரேமிற்கு மறு இருப்பிடம் செய்யப்பட்டது",
+  slam_export_btn: "வரைபடத்தை ஏற்றுமதி செய்",
+  slam_load_btn: "வரைபடத்தை ஏற்று",
+  slam_scale_approx: "அளவு: தோராயமாக ~0.35 மீ/அடி. மோனோகுலர் கேமராவில் நேரடி மெட்ரிக் அளவீடு இல்லை.",
   slam_disclaimer: "காட்சி ஸ்லாம் மோனோகுலர் கேமராவை அடிப்படையாகக் கொண்டது. அளவுகள் தோராயமானவை.",
 
   // OCR Card
   ocr_title: "படத்திலிருந்து உரையைப் படியுங்கள் (OCR)",
-  ocr_upload_label: "📤 உரையைப் படிக்க படத்தைத் தேர்ந்தெடுக்கவும்",
+  ocr_upload_label: "உரையைப் படிக்க படத்தைத் தேர்ந்தெடுக்கவும்",
   extracted_text_title: "பிரித்தெடுக்கப்பட்ட உரை:",
 
   // Static Object Detection Card
   static_detect_title: "நிலையான பட பொருள் கண்டறிதல்",
-  static_upload_label: "📤 பொருட்களைக் கண்டறிய படத்தைத் தேர்ந்தெடுக்கவும்",
+  static_upload_label: "பொருட்களைக் கண்டறிய படத்தைத் தேர்ந்தெடுக்கவும்",
   detected_objects_title: "கண்டறியப்பட்ட பொருட்கள்:",
   confidence_label: "நம்பகத்தன்மை",
 
   // Speech to Text Card
   stt_title: "பேச்சிலிருந்து உரை (STT)",
   recording_in_progress: "பதிவு செய்யப்படுகிறது... மைக்ரோஃபோனில் பேசுங்கள்.",
-  btn_start_recording: "🎙️ பதிவைத் தொடங்கு",
-  btn_stop_recording: "⏹️ பதிவை நிறுத்து",
+  btn_start_recording: "பதிவைத் தொடங்கு",
+  btn_stop_recording: "பதிவை நிறுத்து",
   transcribed_text_title: "உரையாக்கப்பட்ட உரை:",
 
   // Text to Speech Card
   tts_title: "உரையிலிருந்து பேச்சு (TTS)",
   tts_placeholder: "பேசுவதற்கு ஏதேனும் தட்டச்சு செய்க...",
-  btn_speak_text: "🔉 இந்த உரையைப் பேசு",
+  btn_speak_text: "இந்த உரையைப் பேசு",
 
   // System & Spoken Messages
   messages: {
@@ -226,5 +246,38 @@ export const ta = {
     routeProgress: "மீதமுள்ள தூரம் {distance}. மதிப்பிடப்பட்ட நேரம் {duration}.",
     turnStepOf: "திருப்பம் {current} / {total}",
     segmentDistance: "பிரிவு தூரம்: {distance}"
-  }
+  },
+
+  // Redesign & Voice-First Hero
+  hero_prompt_title: "நீங்கள் எங்கு செல்ல விரும்புகிறீர்கள்?",
+  hero_prompt_subtitle: "உங்கள் இலக்கைப் பேசுங்கள் அல்லது உங்கள் சுற்றுப்புறத்தை விவரிக்க திருஷ்டியிடம் கேளுங்கள்.",
+  app_tagline_refined: "நம்பிக்கையுடன் முன்னேறுங்கள்.",
+  app_heading_refined: "உங்கள் உலகம், உங்கள் கைக்கெட்டும் தூரத்தில்",
+
+  // GPS Location Status
+  gps_locating: "உங்கள் இருப்பிடம் கண்டறியப்படுகிறது…",
+  gps_available: "தற்போதைய இருப்பிடம் கிடைக்கிறது",
+  gps_permission_required: "இருப்பிட அனுமதி தேவை. உலாவியில் அனுமதிக்கவும்.",
+  gps_unavailable: "உங்கள் இருப்பிடத்தைக் கண்டறிய முடியவில்லை. ஜிபிஎஸ் சிக்னலைச் சரிபார்க்கவும்.",
+  gps_timeout: "இருப்பிடக் கோரிக்கை நேரம் முடிந்தது. மீண்டும் முயற்சிக்கவும்.",
+  gps_refresh: "இருப்பிடத்தைப் புதுப்பிக்கவும்",
+
+  // Live Assistance
+  live_assistance_title: "நேரடி உதவி & சுற்றுப்புறங்கள்",
+  live_assistance_disclaimer: "தடை கண்டறிதல் ஒரு துணை கருவியாகும், பாதுகாப்பான பாதையை முழுமையாக உத்தரவாதம் செய்யாது. உங்கள் முதன்மை இயக்கம் உதவிகளைப் பயன்படுத்தவும்.",
+  camera_active: "கேமரா செயலில் உள்ளது",
+  camera_inactive: "கேமரா முடக்கப்பட்டுள்ளது",
+
+  // Advanced Tools & Testing
+  advanced_tools_title: "மேம்பட்ட கருவிகள் & சோதனை",
+  advanced_tools_subtitle: "குரல்-க்கு-உரை, உரை-க்கு-குரல் தொகுப்பு மற்றும் ஆஃப்லைன் சோதனைக்கான தனித்த கருவிகள்.",
+  demo_origin_test_btn: "[சோதனைக்கு மட்டும்] டெமோ ஜிபிஎஸ் அமைக்கவும் (மைசூர்)",
+  demo_origin_active: "சோதனைக்கான டெமோ ஜிபிஎஸ் செயலில் உள்ளது",
+
+  // Help Dialog
+  help_dialog_title: "ஆதரிக்கப்படும் குரல் கட்டளைகள்",
+  help_dialog_close: "உதவியை மூடு",
+  help_nav_category: "வழிசெலுத்தல் கட்டளைகள்",
+  help_vision_category: "நேரடி உதவி & பார்வை",
+  help_lang_category: "மொழி & கணினி"
 };

@@ -18,7 +18,6 @@ frontend/build/
 
 # Python environments and caches
 .venv/
-venv/
 __pycache__/
 *.py[cod]
 
@@ -28,7 +27,6 @@ dist/
 build/
 
 # Secrets
-.env
 .env.*
 !.env.example
 

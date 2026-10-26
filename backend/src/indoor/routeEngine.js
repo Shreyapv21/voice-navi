@@ -1,6 +1,6 @@
 /**
  * Weighted shortest-path routing on indoor walk graphs (Dijkstra).
- * Supports floor transitions and optional preference for accessible edges.
+ * Supports floor transitions, accessible routes, turn geometry, and deviation detection.
  */
 
 function buildAdjacency(building, preferAccessible) {
@@ -123,14 +123,31 @@ function describeTransition(edge, reversed) {
   const goingUp = toLevel > fromLevel;
 
   if (t.mode === "elevator") {
-    return `Take the elevator to ${toFloor === "0" ? "Ground Floor" : `Floor ${toFloor}`}.`;
+    return `Take the elevator to ${toFloor === "0" ? "Ground Floor" : `Floor ${toFloor}`}. Step out when doors open.`;
   }
   if (t.mode === "stairs") {
     return goingUp
-      ? `Take the stairs up to ${toFloor === "1" ? "First Floor" : `Floor ${toFloor}`}.`
-      : `Take the stairs down to ${toFloor === "0" ? "Ground Floor" : `Floor ${toFloor}`}.`;
+      ? `Take the stairs up to ${toFloor === "1" ? "First Floor" : `Floor ${toFloor}`}. When you reach the floor landing, confirm your floor.`
+      : `Take the stairs down to ${toFloor === "0" ? "Ground Floor" : `Floor ${toFloor}`}. When you reach the floor landing, confirm your floor.`;
   }
   return `Change to floor ${toFloor}.`;
+}
+
+function calculateTurnManeuver(prevNode, currNode, nextNode) {
+  if (!prevNode || !currNode || !nextNode) return "Continue forward";
+  if (prevNode.floorId !== currNode.floorId || currNode.floorId !== nextNode.floorId) return "Continue forward";
+  if (prevNode.x == null || currNode.x == null || nextNode.x == null) return "Continue forward";
+
+  const theta1 = Math.atan2(currNode.y - prevNode.y, currNode.x - prevNode.x);
+  const theta2 = Math.atan2(nextNode.y - currNode.y, nextNode.x - currNode.x);
+  let dTheta = ((theta2 - theta1 + Math.PI) % (2 * Math.PI)) - Math.PI;
+  const dDeg = (dTheta * 180) / Math.PI;
+
+  if (dDeg > 65) return "Turn right";
+  if (dDeg > 25) return "Bear slightly right";
+  if (dDeg < -65) return "Turn left";
+  if (dDeg < -25) return "Bear slightly left";
+  return "Continue straight";
 }
 
 function buildInstructions(routeResult, building) {
@@ -153,16 +170,47 @@ function buildInstructions(routeResult, building) {
         floorId: toNode.floorId,
         fromLocationId: fromNode.id,
         toLocationId: toNode.id,
-        distanceMeters: edge.distanceMeters || 0
+        distanceMeters: edge.distanceMeters || 0,
+        mode: edge.floorTransition?.mode || "stairs",
+        requiresConfirmation: true
       });
       continue;
     }
 
     const dist = edge.distanceMeters || 0;
+    const distText = dist ? ` (about ${dist} meters)` : "";
+
+    // Calculate turn geometry
+    let maneuver = "walk";
+    let maneuverText = "";
+
+    if (i === 0) {
+      maneuverText = `From ${fromNode.label}, walk straight to ${toNode.label}`;
+    } else {
+      const prevNode = nodes[i - 1];
+      const turnAction = calculateTurnManeuver(prevNode, fromNode, toNode);
+      const isJunction = fromNode.type === "junction" || building.edges.filter((e) => e.from === fromNode.id || e.to === fromNode.id).length > 2;
+
+      if (isJunction) {
+        maneuver = "turn";
+        maneuverText = `At ${fromNode.label}, ${turnAction.toLowerCase()} towards ${toNode.label}`;
+      } else if (turnAction !== "Continue straight") {
+        maneuver = "turn";
+        maneuverText = `${turnAction} towards ${toNode.label}`;
+      } else {
+        maneuverText = `Continue straight towards ${toNode.label}`;
+      }
+    }
+
+    // Doorway notification
+    if (toNode.type === "room" || toNode.type === "library" || toNode.type === "restroom") {
+      maneuverText += ` through the doorway`;
+    }
+
     steps.push({
       stepIndex: steps.length,
-      type: "walk",
-      instruction: `From ${fromNode.label}, walk to ${toNode.label}${dist ? ` (about ${dist} meters)` : ""}.`,
+      type: maneuver,
+      instruction: `${maneuverText}${distText}.`,
       floorId: toNode.floorId,
       fromLocationId: fromNode.id,
       toLocationId: toNode.id,
@@ -199,8 +247,32 @@ function calculateIndoorRoute(building, startId, endId, options = {}) {
   };
 }
 
+/**
+ * Checks if the user's estimated location has deviated from the planned route path.
+ */
+function detectRouteDeviation(route, currentLocationId) {
+  if (!route || !route.nodeIds || !currentLocationId) {
+    return { deviated: false };
+  }
+  const onRoute = route.nodeIds.includes(currentLocationId);
+  return {
+    deviated: !onRoute,
+    onRoute,
+    currentLocationId
+  };
+}
+
+/**
+ * Recalculate route if user deviates or updates position.
+ */
+function recalculateIndoorRoute(building, currentLocationId, destinationLocationId, options = {}) {
+  return calculateIndoorRoute(building, currentLocationId, destinationLocationId, options);
+}
+
 module.exports = {
   calculateIndoorRoute,
   dijkstra,
-  buildInstructions
+  buildInstructions,
+  detectRouteDeviation,
+  recalculateIndoorRoute
 };

@@ -628,9 +628,14 @@ export function parseNavigationUtterance(raw) {
     return { type: "WHERE_AM_I" };
   }
 
-  // 12. SURROUNDINGS / WHAT IS IN FRONT OF ME
+  // 12. SURROUNDINGS / WHAT IS IN FRONT OF ME / WHAT IS AHEAD
   if (
     containsAny(text, [
+      "what is ahead",
+      "what's ahead",
+      "whats ahead",
+      "what is ahead of me",
+      "is there anything ahead",
       "what is in front of me",
       "what's in front of me",
       "what is in front",
@@ -641,13 +646,19 @@ export function parseNavigationUtterance(raw) {
       "look around",
       "what do you see",
       "मेरे सामने क्या है",
+      "आगे क्या है",
+      "आगे देखो",
       "आसपास क्या है",
       "सामने देखो",
       "ನನ್ನ ಮುಂದೆ ಏನಿದೆ",
+      "ಮುಂದೆ ಏನಿದೆ",
+      "ಮುಂದೆ ನೋಡಿ",
       "ಸುತ್ತಲೂ ಏನಿದೆ",
       "முன்னால் என்ன இருக்கிறது",
+      "முன்னே என்ன இருக்கிறது",
       "என்னைச் சுற்றி என்ன உள்ளது",
       "నా ముందు ఏముంది",
+      "ముందు ఏముంది",
       "చుట్టూ ఏముంది"
     ])
   ) {
