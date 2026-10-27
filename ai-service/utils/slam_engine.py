@@ -280,6 +280,50 @@ class SlamEngine:
             "obstacle_cells": obstacle_cells
         }
 
+    def _point_to_segment_dist(self, px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
+        """Calculate shortest distance from point (px, py) to line segment (x1, y1)-(x2, y2)."""
+        l2 = (x2 - x1)**2 + (y2 - y1)**2
+        if l2 == 0:
+            return math.hypot(px - x1, py - y1)
+        t = max(0.0, min(1.0, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2))
+        proj_x = x1 + t * (x2 - x1)
+        proj_y = y1 + t * (y2 - y1)
+        return math.hypot(px - proj_x, py - proj_y)
+
+    def _check_route_blockage_and_replan(self, obs_x: float, obs_y: float, obs_label: str):
+        """
+        If an obstacle is detected directly along the active route segment,
+        detect obstruction and dynamically replan path avoiding the blocked segment.
+        """
+        if not self.active_route or not self.active_destination:
+            return
+
+        steps = self.active_route.get("steps", [])
+        if not steps:
+            return
+
+        route_obstructed = False
+        for step in steps:
+            from_node = next((n for n in self.map_nodes if n["id"] == step.get("from_id")), None)
+            to_node = next((n for n in self.map_nodes if n["id"] == step.get("to_id")), None)
+            if from_node and to_node:
+                seg_dist = self._point_to_segment_dist(obs_x, obs_y, from_node["x"], from_node["y"], to_node["x"], to_node["y"])
+                if seg_dist < 0.40:
+                    route_obstructed = True
+                    break
+
+        if route_obstructed:
+            # Replan around obstacle
+            replan_res = self.plan_route_to_target(self.active_destination)
+            if replan_res.get("status") == "success":
+                self.status_message = f"Obstacle ({obs_label}) detected on path. Route replanned."
+                self.active_route["replanned"] = True
+                self.active_route["warning"] = f"Replanned around {obs_label}."
+            else:
+                self.status_message = f"Caution: Path ahead is obstructed by {obs_label}."
+                self.active_route["blocked"] = True
+                self.active_route["warning"] = f"Path obstructed by {obs_label}."
+
     def _process_detected_landmarks(
         self,
         detected_objects: Optional[List[Dict]] = None,
@@ -287,7 +331,8 @@ class SlamEngine:
     ):
         """
         Integrates visible objects and OCR text into the live SLAM map.
-        Doorways, stairs, elevators, exits, and obstacles are placed relative to current estimated pose.
+        Doorways, stairs, elevators, exits, restrooms, receptions, and obstacles are placed
+        relative to current estimated pose only when tracking confidence supports spatial localization.
         NO room identities or coordinates are invented.
         """
         if detected_objects:
@@ -295,64 +340,93 @@ class SlamEngine:
                 label = obj.get("class_name", obj.get("label", "")).lower().strip()
                 conf = float(obj.get("confidence", 0.7))
                 
-                # Semantic indoor targets
-                if label in ["door", "stairs", "chair", "table", "person", "reception", "elevator", "sign", "exit"] and conf >= 0.45:
-                    # Estimate position relative to current camera heading
-                    distance_est = float(obj.get("distance", 1.8))
-                    direction_str = str(obj.get("direction", "front")).lower()
+                # Spatial position association only when tracking is sufficiently supported
+                if self.confidence < 0.35 and self.tracking_lost:
+                    continue
+
+                distance_est = float(obj.get("distance", 1.8))
+                direction_str = str(obj.get("direction", "front")).lower()
+                
+                angle_offset = 0.0
+                if "left" in direction_str:
+                    angle_offset = -0.4
+                elif "right" in direction_str:
+                    angle_offset = 0.4
                     
-                    angle_offset = 0.0
-                    if "left" in direction_str:
-                        angle_offset = -0.4
-                    elif "right" in direction_str:
-                        angle_offset = 0.4
-                        
-                    lm_heading = self.current_pose["heading"] + angle_offset
-                    lm_x = round(self.current_pose["x"] + distance_est * math.cos(lm_heading), 2)
-                    lm_y = round(self.current_pose["y"] + distance_est * math.sin(lm_heading), 2)
-                    
-                    # Avoid duplicate registration within 1.5m radius
+                lm_heading = self.current_pose["heading"] + angle_offset
+                lm_x = round(self.current_pose["x"] + distance_est * math.cos(lm_heading), 2)
+                lm_y = round(self.current_pose["y"] + distance_est * math.sin(lm_heading), 2)
+
+                # 1. Landmark discovery (doors, elevators, stairs, exits, restrooms, receptions, safety)
+                landmark_classes = [
+                    "door", "doorway", "open doorway", "elevator", "stairs",
+                    "exit", "emergency exit", "restroom", "toilet", "reception", "room",
+                    "fire_extinguisher", "glass_door"
+                ]
+
+                if any(lc in label for lc in landmark_classes) and conf >= 0.45:
                     already_observed = any(
-                        l["type"] == label and math.hypot(l["x"] - lm_x, l["y"] - lm_y) < 1.5
+                        (l["type"] == label or (l.get("raw_class") == label)) and math.hypot(l["x"] - lm_x, l["y"] - lm_y) < 1.2
                         for l in self.observed_landmarks
                     )
-                    
+
                     if not already_observed:
-                        if label == "door":
+                        if "door" in label:
                             lm_type = "doorway"
                             lm_label = f"Doorway {sum(1 for l in self.observed_landmarks if l['type'] == 'doorway') + 1}"
-                        elif label == "stairs":
+                        elif "stair" in label:
                             lm_type = "stairs"
                             lm_label = f"Stairs {sum(1 for l in self.observed_landmarks if l['type'] == 'stairs') + 1}"
-                        elif label == "elevator":
+                        elif "elevator" in label or "lift" in label:
                             lm_type = "elevator"
                             lm_label = "Elevator"
-                        elif label == "exit":
+                        elif "exit" in label:
                             lm_type = "exit"
                             lm_label = "Exit"
+                        elif "restroom" in label or "toilet" in label or "washroom" in label:
+                            lm_type = "restroom"
+                            lm_label = "Restroom"
+                        elif "reception" in label or "desk" in label:
+                            lm_type = "reception"
+                            lm_label = "Reception Desk"
+                        elif "room" in label:
+                            lm_type = "room"
+                            lm_label = obj.get("label", "Room")
+                        elif "fire_extinguisher" in label:
+                            lm_type = "fire_extinguisher"
+                            lm_label = "Fire Extinguisher"
+                        elif "glass" in label:
+                            lm_type = "glass_door"
+                            lm_label = "Glass Door"
                         else:
                             lm_type = label
-                            lm_label = f"{label.title()} Area"
-                        
+                            lm_label = obj.get("label", label.title())
+
                         lm_id = f"lm_{lm_type}_{len(self.observed_landmarks) + 1}"
                         nearest_node_id = self.map_nodes[-1]["id"] if self.map_nodes else "node_0"
-                        
+
                         lm = {
                             "id": lm_id,
                             "label": lm_label,
                             "type": lm_type,
+                            "raw_class": label,
                             "x": lm_x,
                             "y": lm_y,
                             "nodeId": nearest_node_id,
                             "confidence": round(conf, 2),
-                            "verified": True if label in ["door", "stairs", "elevator", "exit"] else False,
+                            "verified": True if lm_type in ["doorway", "stairs", "elevator", "exit", "restroom", "reception"] else False,
                             "discovered_at": time.time()
                         }
                         self.observed_landmarks.append(lm)
-                    
-                    # Obstacle marking in occupancy grid
-                    if label in ["chair", "table", "person"]:
-                        self._mark_obstacle_point(lm_x, lm_y, radius=0.35)
+
+                # 2. Obstacle Registration in Occupancy Grid
+                obstacle_classes = [
+                    "chair", "couch", "table", "dining table", "bed", "person",
+                    "backpack", "suitcase", "box", "pothole", "floor opening", "uneven surface"
+                ]
+                if any(oc in label for oc in obstacle_classes) and conf >= 0.40:
+                    self._mark_obstacle_point(lm_x, lm_y, radius=0.35)
+                    self._check_route_blockage_and_replan(lm_x, lm_y, label)
 
         # OCR Signboard reading integration
         if ocr_text and ocr_text.strip():
@@ -360,22 +434,36 @@ class SlamEngine:
             if len(clean_ocr) >= 3 and not clean_ocr.isnumeric():
                 already_recorded = any(l.get("ocr") == clean_ocr for l in self.observed_landmarks)
                 if not already_recorded:
+                    ocr_lower = clean_ocr.lower()
+                    if "exit" in ocr_lower:
+                        lm_type = "exit"
+                    elif any(w in ocr_lower for w in ["restroom", "toilet", "washroom", "wc"]):
+                        lm_type = "restroom"
+                    elif any(w in ocr_lower for w in ["reception", "desk", "lobby"]):
+                        lm_type = "reception"
+                    elif any(w in ocr_lower for w in ["elevator", "lift"]):
+                        lm_type = "elevator"
+                    elif any(w in ocr_lower for w in ["stair", "step"]):
+                        lm_type = "stairs"
+                    else:
+                        lm_type = "destination"
+
                     lm = {
                         "id": f"lm_ocr_{len(self.observed_landmarks) + 1}",
                         "label": clean_ocr,
                         "ocr": clean_ocr,
-                        "type": "destination",
+                        "type": lm_type,
                         "x": round(self.current_pose["x"], 2),
                         "y": round(self.current_pose["y"], 2),
                         "nodeId": self.map_nodes[-1]["id"] if self.map_nodes else "node_0",
-                        "confidence": 0.85,
+                        "confidence": 0.88,
                         "verified": True,
                         "discovered_at": time.time()
                     }
                     self.observed_landmarks.append(lm)
                     if self.map_nodes:
                         self.map_nodes[-1]["label"] = clean_ocr
-                        self.map_nodes[-1]["type"] = "destination"
+                        self.map_nodes[-1]["type"] = lm_type
                         self.map_nodes[-1]["verified"] = True
 
     def process_frame(
@@ -612,38 +700,124 @@ class SlamEngine:
 
         return self._build_status(tracked_count=tracked_count, inliers=inliers_count)
 
+    def _match_target_landmark(self, target_query: str) -> Optional[Dict]:
+        """
+        Matches destination query by category, synonyms, and label.
+        Supports natural queries:
+        - "exit", "nearest exit", "emergency exit", "way out" -> matches landmarks with type "exit" or "exit" in label
+        - "lift", "elevator", "nearest lift", "nearest elevator" -> matches landmarks with type "elevator" or "lift" in label
+        - "stairs", "stairway", "staircase", "steps" -> matches type "stairs"
+        - "door", "doorway", "entrance", "nearest door" -> matches type "doorway" or "door"
+        - "reception", "front desk", "reception desk", "lobby" -> matches type "reception"
+        - "restroom", "washroom", "toilet", "bathroom", "lavatory", "wc" -> matches type "restroom" or "toilet"
+        - Specific room/node labels (e.g. "Room 101", "Lab 2")
+        If "nearest" or multiple matches exist, picks the one closest to current user pose!
+        """
+        import re
+        q = target_query.lower().strip()
+        q_clean = re.sub(r'^(the|a|an|nearest|closest|find|take me to|guide me to)\s+', '', q)
+        q_clean = re.sub(r'\s+(the|a|an)$', '', q_clean).strip()
+        q_raw = target_query.lower().strip()
+
+        candidates = []
+        user_x = self.current_pose["x"]
+        user_y = self.current_pose["y"]
+
+        def dist_to_user(lm):
+            return math.hypot(lm.get("x", 0.0) - user_x, lm.get("y", 0.0) - user_y)
+
+        # Category detectors
+        is_exit = any(k in q_raw for k in ["exit", "way out", "emergency exit", "escape"])
+        is_lift = any(k in q_raw for k in ["lift", "elevator"])
+        is_stairs = any(k in q_raw for k in ["stair", "step", "stairway", "staircase"])
+        is_door = any(k in q_raw for k in ["door", "doorway", "entrance"]) and not is_exit and not is_lift
+        is_reception = any(k in q_raw for k in ["reception", "desk", "lobby", "front desk", "information"])
+        is_restroom = any(k in q_raw for k in ["restroom", "washroom", "toilet", "bathroom", "wc", "lavatory"])
+
+        for lm in self.observed_landmarks:
+            lm_type = lm.get("type", "").lower()
+            lm_label = lm.get("label", "").lower()
+            match = False
+
+            if is_exit and (lm_type == "exit" or "exit" in lm_label):
+                match = True
+            elif is_lift and (lm_type == "elevator" or "elevator" in lm_label or "lift" in lm_label):
+                match = True
+            elif is_stairs and (lm_type == "stairs" or "stair" in lm_label):
+                match = True
+            elif is_door and (lm_type in ["doorway", "door"] or "door" in lm_label):
+                match = True
+            elif is_reception and (lm_type == "reception" or "reception" in lm_label or "lobby" in lm_label):
+                match = True
+            elif is_restroom and (lm_type in ["restroom", "toilet"] or any(r in lm_label for r in ["restroom", "washroom", "toilet", "bathroom", "wc"])):
+                match = True
+            elif q in lm_label or lm_label in q or (q_clean and (q_clean in lm_label or lm_label in q_clean)):
+                match = True
+
+            if match:
+                candidates.append(lm)
+
+        if candidates:
+            candidates.sort(key=dist_to_user)
+            return candidates[0]
+
+        # Also check map_nodes
+        node_candidates = []
+        for node in self.map_nodes:
+            node_label = node.get("label", "").lower()
+            node_type = node.get("type", "").lower()
+            match = False
+            if is_exit and ("exit" in node_label or node_type == "exit"):
+                match = True
+            elif is_lift and ("elevator" in node_label or "lift" in node_label or node_type == "elevator"):
+                match = True
+            elif is_stairs and ("stair" in node_label or node_type == "stairs"):
+                match = True
+            elif is_door and ("door" in node_label or node_type == "doorway"):
+                match = True
+            elif is_reception and ("reception" in node_label or node_type == "reception"):
+                match = True
+            elif is_restroom and any(r in node_label for r in ["restroom", "washroom", "toilet", "bathroom", "wc"]):
+                match = True
+            elif q in node_label or node_label in q or (q_clean and (q_clean in node_label or node_label in q_clean)):
+                match = True
+
+            if match:
+                node_candidates.append({
+                    "nodeId": node["id"],
+                    "id": node["id"],
+                    "label": node["label"],
+                    "type": node.get("type", "waypoint"),
+                    "x": node["x"],
+                    "y": node["y"]
+                })
+
+        if node_candidates:
+            node_candidates.sort(key=dist_to_user)
+            return node_candidates[0]
+
+        return None
+
     def plan_route_to_target(self, target_query: str, start_node_id: Optional[str] = None) -> Dict:
         """
         Dynamic Path Planning on the actively explored topological map.
         - Matches requested destination only against observed landmarks / nodes.
+        - Supports natural categories: "nearest exit", "find the lift", "take me to the stairs",
+          "nearest door", "guide me to the reception", "find the restroom".
         - If destination has not been observed yet, reports 'unobserved' without inventing coordinates.
         - Calculates turn angles, step-by-step guidance, and total estimated distance.
         """
         if not target_query or not target_query.strip():
             return {"status": "error", "message": "Destination name is required."}
 
-        query_norm = target_query.lower().strip()
+        target_landmark = self._match_target_landmark(target_query)
 
-        # Check observed landmarks
-        target_landmark = None
-        for lm in self.observed_landmarks:
-            if query_norm in lm["label"].lower() or lm["label"].lower() in query_norm:
-                target_landmark = lm
-                break
-
-        # Check labeled map nodes
-        if not target_landmark:
-            for node in self.map_nodes:
-                if query_norm in node["label"].lower():
-                    target_landmark = {"nodeId": node["id"], "label": node["label"], "type": node.get("type", "waypoint")}
-                    break
-
-        # If not observed, tell user honestly!
+        # If not observed, tell user honestly without inventing positions
         if not target_landmark:
             available = [lm["label"] for lm in self.observed_landmarks]
             return {
                 "status": "unobserved",
-                "message": f'Destination "{target_query}" has not been identified on the indoor map yet. {len(self.observed_landmarks)} landmarks have been explored.',
+                "message": f'Destination "{target_query}" has not been identified on the indoor map yet. {len(self.observed_landmarks)} landmarks have been explored. Please continue scanning with the camera to locate it.',
                 "suggestion": available[0] if available else "the starting point",
                 "discoveredLandmarks": available
             }
@@ -749,7 +923,9 @@ class SlamEngine:
             "total_steps": len(steps),
             "total_distance_m": round(total_dist, 1),
             "route_nodes": route_nodes,
-            "steps": steps
+            "steps": steps,
+            "scale_info": self.scale_model,
+            "safety_notice": "Path planned over explored free space. Maintain visual awareness; monocular SLAM distances are approximate."
         }
 
     def _dijkstra(self, start_id: str, end_id: str) -> Optional[List[str]]:

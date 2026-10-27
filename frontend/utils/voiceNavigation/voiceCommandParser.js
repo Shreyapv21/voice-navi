@@ -111,6 +111,38 @@ export function parseNavigationUtterance(raw) {
     return { type: "CHANGE_LANGUAGE", language: "en-US", languageName: "English" };
   }
 
+  // 1.1 STOP SPEAKING / SILENCE AUDIO (immediate TTS cancellation)
+  if (
+    containsAny(text, [
+      "stop speaking",
+      "stop talking",
+      "be quiet",
+      "shut up",
+      "quiet",
+      "silence",
+      "mute voice",
+      "stop audio",
+      "stop speech",
+      "mute",
+      "hush",
+      "बोलना बंद करो",
+      "शांत रहो",
+      "चुप रहो",
+      "आवाज बंद करो",
+      "ಮಾತನಾಡುವುದನ್ನು ನಿಲ್ಲಿಸಿ",
+      "ಸುಮ್ಮನಿರಿ",
+      "ಮೌನವಾಗಿರಿ",
+      "ಧ್ವನಿ ನಿಲ್ಲಿಸಿ",
+      "பேசுவதை நிறுத்து",
+      "அமைதியாக இரு",
+      "குரலை நிறுத்து",
+      "మాట్లాడటం ఆపండి",
+      "నిశ్శబ్దంగా ఉండండి"
+    ])
+  ) {
+    return { type: "STOP_SPEAKING" };
+  }
+
   // 2. HELP / WHAT CAN I SAY
   if (
     containsAny(text, [
@@ -161,7 +193,7 @@ export function parseNavigationUtterance(raw) {
     return { type: "REPEAT_ONBOARDING" };
   }
 
-  // 2.2 SLAM EXPLORATION COMMANDS
+  // 2.2 SLAM & INDOOR SCAN EXPLORATION COMMANDS
   if (
     containsAny(text, [
       "start slam exploration",
@@ -174,24 +206,47 @@ export function parseNavigationUtterance(raw) {
       "slam exploration",
       "start visual odometry",
       "visual slam",
+      "start scan",
+      "start a scan",
+      "start the scan",
+      "start indoor scan",
+      "begin scan",
+      "begin a scan",
+      "begin indoor scan",
+      "start scanning",
+      "begin scanning",
+      "scan the room",
+      "scan room",
+      "start room scan",
+      "scan indoors",
+      "start mapping",
+      "begin mapping",
       "ಸ್ಲ್ಯಾಮ್ ಪ್ರಾರಂಭಿಸಿ",
       "ಒಳಾಂಗಣ ಅನ್ವೇಷಣೆ ಪ್ರಾರಂಭಿಸಿ",
       "ಸ್ಲ್ಯಾಮ್ ಶುರು ಮಾಡು",
       "ಅನ್ವೇಷಣೆ ಪ್ರಾರಂಭಿಸಿ",
+      "ಸ್ಕ್ಯಾನ್ ಪ್ರಾರಂಭಿಸಿ",
+      "ಕೋಣೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+      "ಒಳಾಂಗಣ ಸ್ಕ್ಯಾನ್",
       "ಸ್ಲ್ಯಾಮ್",
       "स्लैम शुरू करो",
       "स्लैम शुरू",
       "इनडोर खोज शुरू",
       "विजुअल स्लैम",
       "स्लैम नेविगेशन",
+      "स्कैन शुरू करो",
+      "कमरा स्कैन करो",
+      "इनडोर स्कैन शुरू",
       "स्लैम",
       "ஸ்லாம் தொடங்கு",
       "உள்ளரங்க ஆய்வு தொடங்கு",
       "ஸ்லாம் ஆரம்பி",
+      "ஸ்கேன் தொடங்கு",
       "ஸ்லாம்",
       "స్లామ్ ప్రారంభించండి",
       "ఇండోర్ అన్వేషణ ప్రారంభించండి",
       "స్లామ్ మొదలుపెట్టు",
+      "స్కాన్ ప్రారంభించండి",
       "స్లామ్"
     ])
   ) {
@@ -206,17 +261,34 @@ export function parseNavigationUtterance(raw) {
       "stop exploration",
       "close slam",
       "quit slam",
+      "stop scan",
+      "stop a scan",
+      "stop the scan",
+      "stop indoor scan",
+      "stop scanning",
+      "end scan",
+      "end the scan",
+      "cancel scan",
+      "finish scan",
+      "finish scanning",
+      "stop mapping",
       "ಸ್ಲ್ಯಾಮ್ ನಿಲ್ಲಿಸಿ",
       "ಅನ್ವೇಷಣೆ ನಿಲ್ಲಿಸಿ",
       "ಸ್ಲ್ಯಾಮ್ ರದ್ದುಮಾಡಿ",
       "ಸ್ಲ್ಯಾಮ್ ಮುಕ್ತಾಯ",
+      "ಸ್ಕ್ಯಾನ್ ನಿಲ್ಲಿಸಿ",
+      "ಸ್ಕ್ಯಾನ್ ರದ್ದುಮಾಡಿ",
       "स्लैम बंद करो",
       "स्लैम रोको",
       "खोज बंद करो",
+      "स्कैन बंद करो",
+      "स्कैन रोको",
       "ஸ்லாம் நிறுத்து",
       "ஆய்வை நிறுத்து",
+      "ஸ்கேன் நிறுத்து",
       "స్లామ్ ఆపండి",
-      "అన్వేషణ ఆపండి"
+      "అన్వేషణ ఆపండి",
+      "స్కాన్ ఆపండి"
     ])
   ) {
     return { type: "STOP_SLAM" };
@@ -226,13 +298,24 @@ export function parseNavigationUtterance(raw) {
     containsAny(text, [
       "pause slam",
       "pause exploration",
+      "pause scan",
+      "pause a scan",
+      "pause the scan",
+      "pause indoor scan",
+      "pause scanning",
+      "pause mapping",
       "ಸ್ಲ್ಯಾಮ್ ವಿರಾಮಗೊಳಿಸಿ",
       "ಸ್ಲ್ಯಾಮ್ ವಿರಾಮ",
+      "ಸ್ಕ್ಯಾನ್ ವಿರಾಮಗೊಳಿಸಿ",
       "स्लैम रोकें",
       "स्लैम पॉज़",
+      "स्कैन रोकें",
+      "स्कैन पॉज़ करो",
       "ஸ்லாம் இடைநிறுத்து",
+      "ஸ்கேன் இடைநிறுத்து",
       "స్లామ్ పాజ్ చేయండి",
-      "స్లామ్ పాజ్"
+      "స్లామ్ పాజ్",
+      "స్కాన్ పాజ్ చేయండి"
     ])
   ) {
     return { type: "PAUSE_SLAM" };
@@ -243,15 +326,67 @@ export function parseNavigationUtterance(raw) {
       "resume slam",
       "resume exploration",
       "continue slam",
+      "resume scan",
+      "resume a scan",
+      "resume the scan",
+      "resume indoor scan",
+      "resume scanning",
+      "continue the scan",
+      "continue scanning",
+      "continue scan",
+      "resume mapping",
       "ಸ್ಲ್ಯಾಮ್ ಮುಂದುವರಿಸಿ",
       "ಸ್ಲ್ಯಾಮ್ ಪುನರಾರಂಭಿಸಿ",
+      "ಸ್ಕ್ಯಾನ್ ಮುಂದುವರಿಸಿ",
       "स्लैम जारी रखें",
       "स्लैम फिर से शुरू",
+      "स्कैन जारी रखो",
+      "स्कैन फिर से शुरू",
       "ஸ்லாம் தொடரவும்",
-      "స్లామ్ కొనసాగించండి"
+      "ஸ்கேன் தொடரவும்",
+      "స్లామ్ కొనసాగించండి",
+      "స్కాన్ కొనసాగించండి"
     ])
   ) {
     return { type: "RESUME_SLAM" };
+  }
+
+  if (
+    containsAny(text, [
+      "reset scan",
+      "reset a scan",
+      "reset the scan",
+      "reset indoor scan",
+      "reset map",
+      "reset indoor map",
+      "reset slam",
+      "restart scan",
+      "restart indoor scan",
+      "reset exploration",
+      "start over",
+      "clear map",
+      "clear indoor map",
+      "reset indoor navigation",
+      "reset indoor",
+      "ಸ್ಕ್ಯಾನ್ ಮರುಹೊಂದಿಸಿ",
+      "ನಕ್ಷೆ ಮರುಹೊಂದಿಸಿ",
+      "ಸ್ಲ್ಯಾಮ್ ಮರುಹೊಂದಿಸಿ",
+      "ಮರುಹೊಂದಿಸಿ",
+      "ಪುನರಾರಂಭಿಸಿ",
+      "स्कैन रीसेट करो",
+      "नक्शा रीसेट करो",
+      "स्लैम रीसेट करो",
+      "रीसेट करो",
+      "फिर से शुरू करो",
+      "ஸ்கேன் மீட்டமை",
+      "வரைபடத்தை மீட்டமை",
+      "மீட்டமை",
+      "స్కాన్ రీసెట్ చేయండి",
+      "మ్యాప్ రీసెట్ చేయండి",
+      "రీసెట్ చేయండి"
+    ])
+  ) {
+    return { type: "RESET_SLAM" };
   }
 
   // 2.3 LIVE DETECTION & CAMERA CONTROL
@@ -373,34 +508,19 @@ export function parseNavigationUtterance(raw) {
       "start indoor navigation",
       "begin indoor navigation",
       "indoor navigation",
+      "start indoor",
+      "begin indoor",
       "where am i inside this building",
-      "take me to the second floor",
-      "take me to second floor",
-      "find the nearest staircase",
-      "find the elevator",
-      "find elevator",
-      "take me to the nearest exit",
-      "find the accessible route",
-      "where is the reception",
       "i am lost",
       "help me find my location",
       "इनडोर नेविगेशन शुरू",
       "इस इमारत में मैं कहाँ हूँ",
-      "लिफ्ट ढूंढो",
-      "सीढ़ी ढूंढो",
-      "निकास द्वार ढूंढो",
       "ಒಳಾಂಗಣ ಸಂಚಾರ ಪ್ರಾರಂಭಿಸಿ",
       "ಕಟ್ಟಡದಲ್ಲಿ ನಾನು ಎಲ್ಲಿದ್ದೇನೆ",
-      "ಲಿಫ್ಟ್ ಹುಡುಕಿ",
-      "ಮೆಟ್ಟಿಲು ಹುಡುಕಿ",
       "உள்ளரங்க வழிகாட்டல்",
       "உள்ளரங்க வழிசெலுத்தலைத் தொடங்கு",
-      "லிஃப்ட் கண்டுபிடி",
-      "படி கண்டுபிடி",
       "ఇండోర్ నావిగేషన్ ప్రారంభించండి",
-      "భవనంలో నేను ఎక్కడ ఉన్నాను",
-      "లిఫ్ట్ కనుగొనండి",
-      "మెట్లు కనుగొనండి"
+      "భవనంలో నేను ఎక్కడ ఉన్నాను"
     ])
   ) {
     return { type: "START_INDOOR" };
@@ -524,18 +644,29 @@ export function parseNavigationUtterance(raw) {
       "repeat the last instruction",
       "say that again",
       "repeat direction",
+      "repeat the directions",
+      "repeat directions",
+      "repeat directions to destination",
+      "directions again",
+      "repeat route",
+      "repeat guidance",
+      "what are the directions",
       "repeat",
       "फिर से बोलो",
       "दोहराएं",
+      "दिशाएं दोहराएं",
       "निर्देश दोहराएं",
       "ಮತ್ತೆ ಹೇಳಿ",
       "ಪುನರಾವರ್ತಿಸಿ",
+      "ದಿಕ್ಕುಗಳನ್ನು ಮತ್ತೆ ಹೇಳಿ",
       "ಸೂಚನೆಯನ್ನು ಮತ್ತೆ ಹೇಳಿ",
       "மீண்டும் சொல்",
       "மறுபடி சொல்",
+      "வழிகளை மீண்டும் சொல்",
       "வழிமுறையை மீண்டும் சொல்",
       "మళ్లీ చెప్పండి",
       "పునరావృతం చేయండి",
+      "దిశలను మళ్లీ చెప్పండి",
       "సూచన మళ్లీ చెప్పండి"
     ])
   ) {
@@ -669,18 +800,31 @@ export function parseNavigationUtterance(raw) {
   if (
     containsAny(text, [
       "is there an obstacle ahead",
+      "what obstacles are ahead",
+      "what obstacle is ahead",
+      "what obstacles are in front",
+      "obstacles ahead",
       "obstacle ahead",
       "any obstacles",
+      "any obstacles ahead",
+      "any obstacles in front",
+      "what is blocking the path",
+      "what is blocking me",
+      "is the path clear",
       "are there stairs ahead",
       "is there a door nearby",
       "repeat the obstacle warning",
       "tell me what is on my left",
       "tell me what is on my right",
+      "आगे क्या बाधा है",
       "क्या आगे कोई बाधा है",
       "क्या सीढ़ियाँ हैं",
+      "ಮುಂದೆ ಏನು ಅಡಚಣೆ ಇದೆ",
       "ಮುಂದೆ ಅಡಚಣೆ ಇದೆಯೇ",
       "ಮುಂದೆ ಮೆಟ್ಟಿಲುಗಳಿವೆಯೇ",
+      "முன்னால் என்ன தடை உள்ளது",
       "முன்னால் ஏதேனும் தடை உள்ளதா",
+      "ముందు ఏ అడ్డంకి ఉంది",
       "ముందు ఏమైనా అడ్డంకి ఉందా"
     ])
   ) {
@@ -747,8 +891,8 @@ export function parseNavigationUtterance(raw) {
   // 18. DESTINATION EXTRACTION PATTERNS
   const patterns = [
     // English patterns
-    /^(?:please\s+)?(?:take me to|navigate to|directions to|guide me to|how do i get to|go to|find|find the nearest|show route to)\s+(.+)$/iu,
-    /^(?:where is the|where is)\s+(.+)$/iu,
+    /^(?:please\s+)?(?:take me to|navigate to|directions to|guide me to|lead me to|how do i get to|how to reach|go to|find|find the nearest|find the|show route to|route to)\s+(.+)$/iu,
+    /^(?:where is the nearest|where is the|where is|where can i find the|where can i find)\s+(.+)$/iu,
 
     // Hindi patterns
     /^(?:मुझे\s+)?(.+?)\s+(?:ले चलो|का रास्ता बताओ|पहुंचाओ|ले जाओ)$/iu,

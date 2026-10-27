@@ -93,4 +93,58 @@ describe("voiceCommandParser multilingual intent classification", async () => {
     assert.equal(dest3.type, "NAVIGATE_TO");
     assert.equal(dest3.destination, "NIE Mysore");
   });
+
+  it("handles voice scan control, silence, and all required indoor destination requests", () => {
+    // 1. Scan control commands
+    assert.equal(parseNavigationUtterance("start scan").type, "START_SLAM");
+    assert.equal(parseNavigationUtterance("start a scan").type, "START_SLAM");
+    assert.equal(parseNavigationUtterance("pause scan").type, "PAUSE_SLAM");
+    assert.equal(parseNavigationUtterance("resume scan").type, "RESUME_SLAM");
+    assert.equal(parseNavigationUtterance("stop scan").type, "STOP_SLAM");
+    assert.equal(parseNavigationUtterance("reset scan").type, "RESET_SLAM");
+    assert.equal(parseNavigationUtterance("reset map").type, "RESET_SLAM");
+    assert.equal(parseNavigationUtterance("reset indoor scan").type, "RESET_SLAM");
+
+    // 2. Silence / stop speaking
+    assert.equal(parseNavigationUtterance("stop speaking").type, "STOP_SPEAKING");
+    assert.equal(parseNavigationUtterance("be quiet").type, "STOP_SPEAKING");
+    assert.equal(parseNavigationUtterance("silence").type, "STOP_SPEAKING");
+    assert.equal(parseNavigationUtterance("बोलना बंद करो").type, "STOP_SPEAKING");
+    assert.equal(parseNavigationUtterance("ಮಾತನಾಡುವುದನ್ನು ನಿಲ್ಲಿಸಿ").type, "STOP_SPEAKING");
+
+    // 3. Repeat directions
+    assert.equal(parseNavigationUtterance("repeat the directions").type, "REPEAT_INSTRUCTION");
+    assert.equal(parseNavigationUtterance("repeat directions").type, "REPEAT_INSTRUCTION");
+
+    // 4. Obstacle queries
+    assert.equal(parseNavigationUtterance("what obstacles are ahead").type, "OBSTACLE_QUERY");
+
+    // 5. Where am I
+    assert.equal(parseNavigationUtterance("where am i").type, "WHERE_AM_I");
+
+    // 6. Destination requests
+    const dExit = parseNavigationUtterance("Take me to the nearest exit.");
+    assert.equal(dExit.type, "NAVIGATE_TO");
+    assert.match(dExit.destination, /exit/i);
+
+    const dLift = parseNavigationUtterance("Find the lift.");
+    assert.equal(dLift.type, "NAVIGATE_TO");
+    assert.match(dLift.destination, /lift/i);
+
+    const dStairs = parseNavigationUtterance("Take me to the stairs.");
+    assert.equal(dStairs.type, "NAVIGATE_TO");
+    assert.match(dStairs.destination, /stairs/i);
+
+    const dDoor = parseNavigationUtterance("Find the nearest door.");
+    assert.equal(dDoor.type, "NAVIGATE_TO");
+    assert.match(dDoor.destination, /door/i);
+
+    const dRec = parseNavigationUtterance("Guide me to the reception.");
+    assert.equal(dRec.type, "NAVIGATE_TO");
+    assert.match(dRec.destination, /reception/i);
+
+    const dRest = parseNavigationUtterance("Find the restroom.");
+    assert.equal(dRest.type, "NAVIGATE_TO");
+    assert.match(dRest.destination, /restroom/i);
+  });
 });

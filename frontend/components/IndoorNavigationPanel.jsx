@@ -20,7 +20,10 @@ import {
   IconChevronUp,
   IconChevronDown,
   IconSearch,
-  IconDoorExit
+  IconDoorExit,
+  IconMicrophone,
+  IconMicrophoneOff,
+  IconRefresh
 } from "@tabler/icons-react";
 import {
   sendSlamFrame,
@@ -37,7 +40,11 @@ export function IndoorNavigationPanel({
   sharedManagerRef,
   uiSync,
   slamControlRef,
-  ocrText
+  ocrText,
+  isListening,
+  onToggleListening,
+  liveTranscript,
+  lastExecutedCommand
 }) {
   const { t } = useLanguage();
 
@@ -324,6 +331,29 @@ export function IndoorNavigationPanel({
     }
   }, [isScanning, speakText]);
 
+  const resetIndoorScan = useCallback(async () => {
+    try {
+      await resetSlamSession();
+    } catch (err) {
+      console.warn("Failed to reset SLAM backend session:", err);
+    }
+    setRoutePlan(null);
+    setCurrentStepIndex(0);
+    setSlamState((prev) => ({
+      ...prev,
+      pose: { x: 0, y: 0, z: 0, yaw_deg: 0 },
+      map: { nodes: [], edges: [], landmarks: [], obstacles: [] }
+    }));
+    setNavigationFeedback("Indoor map and SLAM state reset to origin.");
+    managerRef.current?.resetNavigationState();
+    const overlay = perceptionOverlayRef.current;
+    if (overlay) {
+      const ctx = overlay.getContext("2d");
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+    }
+    speakText("Indoor scan and map reset to origin.");
+  }, [speakText]);
+
   // Expose controls to App and Voice Command Orchestrator
   useEffect(() => {
     if (slamControlRef) {
@@ -332,11 +362,15 @@ export function IndoorNavigationPanel({
         stop: stopIndoorScan,
         pause: pauseIndoorScan,
         resume: resumeIndoorScan,
+        reset: resetIndoorScan,
         isScanning: () => isScanning,
+        getCurrentPose: () => slamState.pose,
+        getLatestPerception: () => perceptionState,
+        getDiscoveredMap: () => slamState.map,
         planRoute: (dest) => handlePlanRoute(dest)
       };
     }
-  }, [slamControlRef, isScanning, stopIndoorScan, pauseIndoorScan, resumeIndoorScan]);
+  }, [slamControlRef, isScanning, slamState, perceptionState, stopIndoorScan, pauseIndoorScan, resumeIndoorScan, resetIndoorScan]);
 
   // Handle external UI sync commands
   useEffect(() => {
@@ -349,6 +383,8 @@ export function IndoorNavigationPanel({
       pauseIndoorScan();
     } else if (uiSync.slamCommand === "resume" && isScanning) {
       resumeIndoorScan();
+    } else if (uiSync.slamCommand === "reset") {
+      resetIndoorScan();
     }
   }, [uiSync]);
 
@@ -405,6 +441,10 @@ export function IndoorNavigationPanel({
             if (data && data.status === "success") {
               setSlamState(data);
               managerRef.current?.handleSlamFrameResult(data);
+              if (data.replanned_route) {
+                setRoutePlan(data.replanned_route);
+                setCurrentStepIndex(0);
+              }
 
               // Update perception state
               if (data.perception) {
@@ -475,9 +515,19 @@ export function IndoorNavigationPanel({
           } else if (obj.class_name === "stairs") {
             speakText(`Stairs detected ${obj.direction}. Proceed with caution.`);
           } else if (obj.class_name === "person") {
-            speakText(`Person ${obj.direction}.`);
+            speakText(obj.is_moving ? `Moving person ${obj.direction}.` : `Person ${obj.direction}.`);
+          } else if (obj.class_name === "fire_extinguisher") {
+            speakText(`Fire extinguisher observed ${obj.direction}.`);
+          } else if (obj.class_name === "glass_door" || obj.class_name === "transparent_obstacle") {
+            speakText(`Caution: Glass door or transparent barrier detected ${obj.direction}.`);
+          } else if (obj.class_name === "floor_hazard" || obj.class_name === "pothole") {
+            speakText(`Caution: Floor irregularity or opening detected ${obj.direction}.`);
           } else if (["chair", "couch", "table"].includes(obj.class_name)) {
             speakText(`Obstacle: ${obj.label} ${obj.direction}.`);
+          } else if (["backpack", "suitcase", "handbag"].includes(obj.class_name)) {
+            speakText(`Obstacle on floor: ${obj.label} ${obj.direction}.`);
+          } else if (["exit_sign", "restroom", "reception", "room_landmark"].includes(obj.class_name)) {
+            speakText(`Landmark: ${obj.label} observed ${obj.direction}.`);
           }
           break; // Announce only one object event per frame tick to avoid voice queue overflow
         }
@@ -577,6 +627,7 @@ export function IndoorNavigationPanel({
       // Color scheme based on classification
       let boxColor = "#38bdf8"; // Cyan for doors
       let icon = "🚪";
+      let isDashed = false;
       if (obj.class_name === "elevator") {
         boxColor = "#fbbf24"; // Gold for elevator
         icon = "🛗";
@@ -584,17 +635,44 @@ export function IndoorNavigationPanel({
         boxColor = "#f59e0b"; // Amber for stairs
         icon = "🪜";
       } else if (obj.class_name === "person") {
-        boxColor = "#34d399"; // Green for person
-        icon = "👤";
+        if (obj.is_moving) {
+          boxColor = "#10b981"; // Emerald green
+          icon = "🚶";
+        } else {
+          boxColor = "#34d399"; // Mint green
+          icon = "👤";
+        }
+      } else if (obj.class_name === "fire_extinguisher") {
+        boxColor = "#ef4444";
+        icon = "🧯";
+      } else if (obj.class_name === "glass_door" || obj.class_name === "transparent_obstacle") {
+        boxColor = "#06b6d4";
+        icon = "🪟";
+        isDashed = true;
+      } else if (obj.class_name === "floor_hazard" || obj.class_name === "pothole") {
+        boxColor = "#e11d48";
+        icon = "⚠️";
       } else if (["chair", "couch", "table"].includes(obj.class_name)) {
         boxColor = "#f87171"; // Red for obstacle
         icon = "🪑";
+      } else if (["backpack", "suitcase", "handbag"].includes(obj.class_name)) {
+        boxColor = "#fb923c"; // Orange for bag
+        icon = "🎒";
+      } else if (["exit_sign", "restroom", "reception", "room_landmark"].includes(obj.class_name)) {
+        boxColor = "#a855f7"; // Purple for landmarks
+        icon = "📍";
       }
 
       // Bounding box
       ctx.strokeStyle = boxColor;
       ctx.lineWidth = 3;
+      if (isDashed) {
+        ctx.setLineDash([5, 5]);
+      } else {
+        ctx.setLineDash([]);
+      }
       ctx.strokeRect(sx1, sy1, sw, sh);
+      ctx.setLineDash([]);
 
       // Label badge
       const confPercent = Math.round((obj.confidence || 0) * 100);
@@ -1201,6 +1279,33 @@ export function IndoorNavigationPanel({
           margin-top: 0.5rem;
           font-style: italic;
         }
+        .slam-btn-listening {
+          background: rgba(14, 165, 233, 0.22) !important;
+          border-color: #38bdf8 !important;
+          color: #38bdf8 !important;
+        }
+        @keyframes pulse-mic {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.15); }
+        }
+        .mic-pulse {
+          animation: pulse-mic 1.6s infinite;
+        }
+        .chip-hazard {
+          background: rgba(225, 29, 72, 0.18);
+          border-color: #e11d48;
+          color: #fda4af;
+        }
+        .chip-glass {
+          background: rgba(6, 182, 212, 0.18);
+          border-color: #06b6d4;
+          color: #67e8f9;
+        }
+        .chip-extinguisher {
+          background: rgba(239, 68, 68, 0.18);
+          border-color: #ef4444;
+          color: #fca5a5;
+        }
       `}</style>
 
       {/* Header & Controls */}
@@ -1211,6 +1316,28 @@ export function IndoorNavigationPanel({
         </div>
 
         <div className="slam-action-buttons">
+          {onToggleListening && (
+            <button
+              type="button"
+              className={`slam-btn ${isListening ? "slam-btn-listening" : "slam-btn-secondary"}`}
+              onClick={onToggleListening}
+              aria-label={isListening ? "Voice control listening active. Tap to mute." : "Voice control inactive. Tap to enable voice control."}
+              title={isListening ? "Voice Listening Active (Alt+V)" : "Enable Voice Control (Alt+V)"}
+            >
+              {isListening ? (
+                <>
+                  <IconMicrophone size={18} aria-hidden="true" className="mic-pulse" style={{ color: "#38bdf8" }} />
+                  <span>Listening...</span>
+                </>
+              ) : (
+                <>
+                  <IconMicrophoneOff size={18} aria-hidden="true" />
+                  <span>Mic Off</span>
+                </>
+              )}
+            </button>
+          )}
+
           {!isScanning ? (
             <button className="slam-btn slam-btn-primary" onClick={startIndoorScan}>
               <IconPlayerPlay size={18} aria-hidden="true" />
@@ -1235,8 +1362,45 @@ export function IndoorNavigationPanel({
               </button>
             </>
           )}
+
+          <button
+            type="button"
+            className="slam-btn slam-btn-secondary"
+            onClick={resetIndoorScan}
+            title="Reset SLAM map and position to origin"
+            aria-label="Reset indoor scan and SLAM map"
+          >
+            <IconRefresh size={18} aria-hidden="true" />
+            <span>Reset Scan</span>
+          </button>
         </div>
       </div>
+
+      {(isListening || liveTranscript || lastExecutedCommand) && (
+        <div
+          className="voice-status-bar"
+          aria-live="polite"
+          style={{
+            margin: "0.5rem 0 1rem 0",
+            padding: "0.55rem 0.9rem",
+            background: "rgba(15, 23, 42, 0.85)",
+            border: "1px solid rgba(56, 189, 248, 0.3)",
+            borderRadius: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            fontSize: "0.85rem"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: isListening ? "#38bdf8" : "#94a3b8", flexShrink: 0 }}>
+            <IconMicrophone size={16} />
+            <span style={{ fontWeight: 600 }}>{isListening ? "Voice Active:" : "Voice Command:"}</span>
+          </div>
+          <div style={{ color: "#f8fafc", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {liveTranscript ? `"${liveTranscript}"` : lastExecutedCommand ? `Executed: ${lastExecutedCommand}` : 'Say "Take me to exit", "Find stairs", "What obstacles ahead", or "Stop speaking"'}
+          </div>
+        </div>
+      )}
 
       {cameraError && (
         <div className="warning-banner" role="alert" style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1330,9 +1494,24 @@ export function IndoorNavigationPanel({
                 } else if (obj.class_name === "person") {
                   chipClass = "chip-person";
                   IconComponent = IconUser;
+                } else if (obj.class_name === "fire_extinguisher") {
+                  chipClass = "chip-extinguisher";
+                  IconComponent = IconMapPin;
+                } else if (obj.class_name === "glass_door" || obj.class_name === "transparent_obstacle") {
+                  chipClass = "chip-glass";
+                  IconComponent = IconDoor;
+                } else if (obj.class_name === "floor_hazard" || obj.class_name === "pothole") {
+                  chipClass = "chip-hazard";
+                  IconComponent = IconAlertTriangle;
                 } else if (["chair", "couch", "table"].includes(obj.class_name)) {
                   chipClass = "chip-obstacle";
                   IconComponent = IconArmchair;
+                } else if (["backpack", "suitcase", "handbag"].includes(obj.class_name)) {
+                  chipClass = "chip-obstacle";
+                  IconComponent = IconArmchair;
+                } else if (["exit_sign", "restroom", "reception", "room_landmark"].includes(obj.class_name)) {
+                  chipClass = "chip-door";
+                  IconComponent = IconDoorExit;
                 }
 
                 return (
@@ -1556,6 +1735,18 @@ export function IndoorNavigationPanel({
                 </button>
               )}
             </div>
+
+            {routePlan.safety_notice && (
+              <div className="warning-banner" style={{ marginTop: "0.6rem", fontSize: "0.8rem", padding: "0.45rem 0.65rem" }}>
+                <IconAlertTriangle size={16} aria-hidden="true" style={{ flexShrink: 0 }} />
+                <span>{routePlan.safety_notice}</span>
+              </div>
+            )}
+            {routePlan.monocular_scale_disclaimer && (
+              <div className="scale-disclaimer" style={{ marginTop: "0.4rem" }}>
+                {routePlan.monocular_scale_disclaimer}
+              </div>
+            )}
           </div>
         )}
 

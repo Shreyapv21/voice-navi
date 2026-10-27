@@ -79,6 +79,21 @@ export class IndoorNavigationManager {
       this.onSpeak("Visual tracking restored.");
     }
 
+    // Check dynamic obstacle rerouting from SLAM engine
+    if (data.replanned_route && this.isNavigating) {
+      this.route = data.replanned_route;
+      this.currentStepIndex = 0;
+      this.onStateChange({
+        status: "NAVIGATING",
+        route: data.replanned_route,
+        currentStepIndex: 0,
+        currentStep: data.replanned_route.steps?.[0] || null,
+        nextStep: data.replanned_route.steps?.[1] || null
+      });
+      const msg = data.status_message || "Route blocked by newly observed obstacle. Recalculated path.";
+      this.onSpeak(msg);
+    }
+
     // Check arrival if navigating
     if (this.isNavigating && this.route && this.route.steps) {
       const lastStep = this.route.steps[this.route.steps.length - 1];

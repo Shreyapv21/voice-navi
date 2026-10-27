@@ -100,10 +100,62 @@ class TestSlamEngine(unittest.TestCase):
         arrival_route = self.engine.plan_route_to_target("Exit", start_node_id="node_2")
         self.assertEqual(arrival_route["status"], "arrived")
 
-        # Test unobserved destination: must return 'unobserved' without inventing coordinates!
-        unobserved_route = self.engine.plan_route_to_target("Nonexistent Library Hall")
-        self.assertEqual(unobserved_route["status"], "unobserved")
-        self.assertIn("message", unobserved_route)
+    def test_semantic_destination_requests(self):
+        """Test voice destination queries: nearest exit, find lift, stairs, door, reception, restroom."""
+        self.engine.map_nodes = [
+            {"id": "node_0", "x": 0.0, "y": 0.0, "label": "Start Position", "type": "origin"},
+            {"id": "node_1", "x": 2.0, "y": 0.0, "label": "Corridor 1", "type": "corridor"},
+            {"id": "node_2", "x": 4.0, "y": 0.0, "label": "Corridor 2", "type": "corridor"}
+        ]
+        self.engine.map_edges = [
+            {"from": "node_0", "to": "node_1", "distance": 2.0},
+            {"from": "node_1", "to": "node_2", "distance": 2.0}
+        ]
+        self.engine.observed_landmarks = [
+            {"id": "lm_exit_1", "label": "Exit", "type": "exit", "x": 4.0, "y": 0.0, "nodeId": "node_2"},
+            {"id": "lm_lift_1", "label": "Elevator", "type": "elevator", "x": 2.0, "y": 0.0, "nodeId": "node_1"},
+            {"id": "lm_stairs_1", "label": "Stairs 1", "type": "stairs", "x": 4.0, "y": 0.0, "nodeId": "node_2"},
+            {"id": "lm_door_1", "label": "Doorway 1", "type": "doorway", "x": 2.0, "y": 0.0, "nodeId": "node_1"},
+            {"id": "lm_rec_1", "label": "Reception Desk", "type": "reception", "x": 2.0, "y": 0.0, "nodeId": "node_1"},
+            {"id": "lm_rest_1", "label": "Restroom", "type": "restroom", "x": 4.0, "y": 0.0, "nodeId": "node_2"}
+        ]
+
+        # 1. "Take me to the nearest exit."
+        res_exit = self.engine.plan_route_to_target("Take me to the nearest exit", start_node_id="node_0")
+        self.assertEqual(res_exit["status"], "success")
+        self.assertEqual(res_exit["destination"], "Exit")
+
+        # 2. "Find the lift."
+        res_lift = self.engine.plan_route_to_target("Find the lift", start_node_id="node_0")
+        self.assertEqual(res_lift["status"], "success")
+        self.assertEqual(res_lift["destination"], "Elevator")
+
+        # 3. "Take me to the stairs."
+        res_stairs = self.engine.plan_route_to_target("Take me to the stairs", start_node_id="node_0")
+        self.assertEqual(res_stairs["status"], "success")
+        self.assertEqual(res_stairs["destination"], "Stairs 1")
+
+        # 4. "Find the nearest door."
+        res_door = self.engine.plan_route_to_target("Find the nearest door", start_node_id="node_0")
+        self.assertEqual(res_door["status"], "success")
+        self.assertEqual(res_door["destination"], "Doorway 1")
+
+        # 5. "Guide me to the reception."
+        res_rec = self.engine.plan_route_to_target("Guide me to the reception", start_node_id="node_0")
+        self.assertEqual(res_rec["status"], "success")
+        self.assertEqual(res_rec["destination"], "Reception Desk")
+
+        # 6. "Find the restroom."
+        res_rest = self.engine.plan_route_to_target("Find the restroom", start_node_id="node_0")
+        self.assertEqual(res_rest["status"], "success")
+        self.assertEqual(res_rest["destination"], "Restroom")
+
+    def test_unobserved_destination_does_not_invent_coordinates(self):
+        """Unobserved destinations must be reported honestly without inventing coordinates."""
+        res = self.engine.plan_route_to_target("Nonexistent Library")
+        self.assertEqual(res["status"], "unobserved")
+        self.assertIn("Nonexistent Library", res["message"])
+        self.assertIn("discoveredLandmarks", res)
 
     def test_relocalization_simulation(self):
         img1 = self._create_rich_frame()
@@ -210,6 +262,25 @@ class TestIndoorPerceptionEngine(unittest.TestCase):
         self.assertIn("obstacle_cells", occ)
         self.assertGreater(len(occ["free_cells"]), 0)
         self.assertGreater(len(occ["obstacle_cells"]), 0)
+
+    def test_fire_extinguisher_and_ocr_landmarks(self):
+        """Verify recognition of fire extinguisher and OCR indoor landmarks."""
+        # 1. Fire extinguisher red canister synthetic frame
+        frame = np.full((360, 480, 3), 200, dtype=np.uint8)
+        # Draw red cylinder on wall (x=200, y=80, w=40, h=100) -> BGR: (30, 30, 220)
+        cv2.rectangle(frame, (200, 80), (240, 180), (30, 30, 220), -1)
+
+        res = self.engine.process(frame)
+        fire_objs = [o for o in res["objects"] if o["class_name"] == "fire_extinguisher"]
+        self.assertGreaterEqual(len(fire_objs), 1)
+        self.assertEqual(fire_objs[0]["label"], "Fire Extinguisher")
+
+        # 2. OCR Landmark extraction
+        res_ocr = self.engine.process(frame, ocr_text="EMERGENCY EXIT ROOM 204")
+        exit_objs = [o for o in res_ocr["objects"] if o["class_name"] == "exit"]
+        self.assertGreaterEqual(len(exit_objs), 1)
+        room_objs = [o for o in res_ocr["objects"] if o["class_name"] == "room"]
+        self.assertGreaterEqual(len(room_objs), 1)
 
 if __name__ == "__main__":
     unittest.main()

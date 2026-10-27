@@ -229,6 +229,7 @@ export const en = {
     obstacleWarning: "Warning: {label} detected {direction}, approximately {distance} meters away.",
     slamStarted: "Indoor exploration mapping started. Move slowly and keep camera steady.",
     slamStopped: "Indoor exploration stopped.",
+    slamReset: "Indoor scan and map reset to origin.",
     slamLost: "Tracking confidence is low. Please hold device steady or retrace steps.",
     slamUnmappedDestination: 'Destination "{destination}" has not been identified in this building yet. Guiding toward the nearest known landmark.',
     demoGpsSet: "Demo GPS location set to Sayyaji Rao Road, Mysuru.",

@@ -339,6 +339,27 @@ function AppContent() {
         speakText(t("messages.onboarding"));
         break;
 
+      case "STOP_SPEAKING":
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        if (currentAudioRef.current) {
+          currentAudioRef.current.pause();
+          currentAudioRef.current = null;
+        }
+        isSpeakingRef.current = false;
+        break;
+
+      case "RESET_SLAM":
+        setIndoorUiSync((prev) => ({ ...(prev || {}), slamCommand: "reset", ts: Date.now() }));
+        if (slamControlRef.current?.reset) {
+          slamControlRef.current.reset();
+        } else {
+          indoorNavigationManagerRef.current?.resetNavigationState?.();
+        }
+        speakText(t("messages.slamReset") || "Indoor scan and map reset to origin.");
+        break;
+
       case "START_LIVE_DETECTION":
         startLiveDetection();
         speakText(t("messages.cameraStarted"));
@@ -359,6 +380,17 @@ function AppContent() {
         break;
 
       case "OBSTACLE_QUERY":
+        if (navigationModeRef.current === "indoor") {
+          const perception = slamControlRef.current?.getLatestPerception?.();
+          const objects = perception?.objects || [];
+          if (objects.length > 0) {
+            const names = objects.map((o) => `${o.class_name}${o.is_moving ? " (moving)" : ""}`);
+            speakText(`Ahead indoors: ${names.join(", ")}.`);
+          } else {
+            speakText("No immediate indoor obstacles detected ahead in view.");
+          }
+          break;
+        }
         if (!mediaStreamRef.current) {
           startLiveDetection();
           speakText(t("messages.cameraCheckingObstacles"));
@@ -469,7 +501,13 @@ function AppContent() {
           const clean = target.trim();
           setManualDestination(clean);
           if (navigationModeRef.current === "indoor") {
-            voiceOrchestratorRef.current?.processTranscript(`take me to ${clean}`);
+            if (indoorNavigationManagerRef.current?.navigateToDestination) {
+              indoorNavigationManagerRef.current.navigateToDestination(clean);
+            } else if (slamControlRef.current?.planRoute) {
+              slamControlRef.current.planRoute(clean);
+            } else {
+              voiceOrchestratorRef.current?.processTranscript(`take me to ${clean}`);
+            }
           } else {
             initiateNavigation(clean);
           }
@@ -522,6 +560,8 @@ function AppContent() {
           navigationManagerRef.current?.repeatInstruction();
         } else if (indoorNavigationManagerRef.current?.isNavigating) {
           indoorNavigationManagerRef.current.repeatInstruction();
+        } else if (navigationModeRef.current === "indoor") {
+          indoorNavigationManagerRef.current?.repeatInstruction();
         } else {
           speakText(t("messages.navNoActiveRoute"));
         }
@@ -549,7 +589,26 @@ function AppContent() {
         break;
 
       case "WHERE_AM_I":
-        voiceOrchestratorRef.current?.processTranscript("where am i");
+        if (navigationModeRef.current === "indoor") {
+          const pose = slamControlRef.current?.getCurrentPose?.();
+          const map = slamControlRef.current?.getDiscoveredMap?.();
+          let msg = "";
+          if (pose && (Math.abs(pose.x) > 0.1 || Math.abs(pose.y) > 0.1)) {
+            msg = `You are indoors at map coordinates ${pose.x.toFixed(1)}, ${pose.y.toFixed(1)}.`;
+            if (map?.landmarks?.length > 0) {
+              const nearest = map.landmarks[map.landmarks.length - 1];
+              msg += ` Near ${nearest.name || nearest.type}.`;
+            }
+          } else {
+            msg = "You are at the indoor scan starting origin.";
+            if (map?.landmarks?.length > 0) {
+              msg += ` Discovered landmarks: ${map.landmarks.map((l) => l.name || l.type).join(", ")}.`;
+            }
+          }
+          speakText(msg);
+        } else {
+          voiceOrchestratorRef.current?.processTranscript("where am i");
+        }
         break;
 
       default:
@@ -612,7 +671,7 @@ function AppContent() {
   useEffect(() => {
     // 1. Initialize Speech Controller
     speechControllerRef.current = new SpeechController({
-      onCommand: (cmd) => handleVoiceCommandRef.current?.(cmd),
+      onCommand: (cmd, raw) => handleVoiceCommandRef.current?.(cmd, raw),
       onTranscript: (transcript) => setLiveTranscript(transcript),
       onStateChange: ({ isListening }) => setIsVoiceControlActive(isListening),
       onError: (errMsg) => {
@@ -1279,12 +1338,27 @@ function AppContent() {
       }
     },
     indoorNav: {
+      navigateToDestination: (dest) => indoorNavigationManagerRef.current?.navigateToDestination(dest),
+      reset: () => {
+        slamControlRef.current?.reset?.();
+        indoorNavigationManagerRef.current?.resetNavigationState?.();
+      },
       stop: (c) => indoorNavigationManagerRef.current?.stopNavigation(c),
       pause: () => indoorNavigationManagerRef.current?.pauseNavigation(),
       resume: () => indoorNavigationManagerRef.current?.resumeNavigation(),
       repeatInstruction: () => indoorNavigationManagerRef.current?.repeatInstruction(),
       nextStep: () => indoorNavigationManagerRef.current?.nextStep(),
       applyRoute: (route, meta) => indoorNavigationManagerRef.current?.applyRoute(route, meta)
+    },
+    cancelSpeech: () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+      isSpeakingRef.current = false;
     },
     slamControl: slamControlRef,
     onAppCommand: (cmd, raw) => handleVoiceCommandRef.current?.(cmd, raw),
@@ -2426,6 +2500,10 @@ function AppContent() {
                 voiceOrchestratorRef={voiceOrchestratorRef}
                 slamControlRef={slamControlRef}
                 ocrText={ocrResult}
+                isListening={isVoiceControlActive}
+                onToggleListening={toggleVoiceControl}
+                liveTranscript={liveTranscript}
+                lastExecutedCommand={lastExecutedCommand}
               />
             )}
           </section>

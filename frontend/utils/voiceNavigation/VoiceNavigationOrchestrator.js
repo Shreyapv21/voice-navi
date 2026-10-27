@@ -166,6 +166,22 @@ export class VoiceNavigationOrchestrator {
         this.setState(VOICE_NAV_STATES.LISTENING);
         return;
 
+      case "STOP_SPEAKING":
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        this.deps.cancelSpeech?.();
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
+      case "RESET_SLAM":
+        this.deps.indoorNav?.reset?.();
+        if (this.deps.onAppCommand) {
+          this.deps.onAppCommand(cmd, rawTranscript);
+        }
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+
       case "STOP_NAVIGATION":
       case "CANCEL":
         this.stopActiveNavigation(true);
@@ -263,6 +279,18 @@ export class VoiceNavigationOrchestrator {
         return;
 
       case "OBSTACLE_QUERY": {
+        if (this.deps.getNavigationMode?.() === "indoor" || this.environment.classification === "indoor") {
+          const perception = this.deps.slamControl?.current?.getLatestPerception?.();
+          const objects = perception?.objects || [];
+          if (objects.length > 0) {
+            const desc = objects.map((o) => `${o.class_name}${o.is_moving ? " (moving)" : ""}`).join(", ");
+            this.speak(`Ahead indoors: ${desc}.`, { force: true, kind: "obstacle" });
+          } else {
+            this.speak("No immediate indoor obstacles detected ahead in view.", { force: true });
+          }
+          this.setState(VOICE_NAV_STATES.LISTENING);
+          return;
+        }
         const currentObstacles = this.deps.getLatestDetections?.() || [];
         if (currentObstacles.length > 0) {
           const sentences = currentObstacles.map((d) => formatDetectionSentence(d, this.deps.getLanguage?.()));
@@ -377,6 +405,28 @@ export class VoiceNavigationOrchestrator {
   }
 
   async answerWhereAmI() {
+    if (this.deps.getNavigationMode?.() === "indoor" || this.environment.classification === "indoor") {
+      const pose = this.deps.slamControl?.current?.getCurrentPose?.();
+      const map = this.deps.slamControl?.current?.getDiscoveredMap?.();
+      if (pose && (Math.abs(pose.x) > 0.1 || Math.abs(pose.y) > 0.1)) {
+        let msg = `You are indoors at map coordinates ${pose.x.toFixed(1)}, ${pose.y.toFixed(1)}.`;
+        if (map?.landmarks?.length > 0) {
+          const nearest = map.landmarks[map.landmarks.length - 1];
+          msg += ` Near ${nearest.name || nearest.type}.`;
+        }
+        this.speak(msg, { force: true });
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+      } else {
+        let msg = "You are at the indoor scan starting origin.";
+        if (map?.landmarks?.length > 0) {
+          msg += ` Discovered landmarks: ${map.landmarks.map((l) => l.name || l.type).join(", ")}.`;
+        }
+        this.speak(msg, { force: true });
+        this.setState(VOICE_NAV_STATES.LISTENING);
+        return;
+      }
+    }
     await this.refreshEnvironmentClassification();
     if (this.lastLocationEstimate?.label) {
       this.speak(
@@ -402,10 +452,16 @@ export class VoiceNavigationOrchestrator {
     // If in indoor mode, plan route directly on the live SLAM map without demanding QR markers or pre-defined maps
     if (this.environment.classification === 'indoor' || this.deps.getNavigationMode?.() === 'indoor') {
       this.activeMode = 'indoor';
-      this.speak("Searching active indoor map for " + query, { force: true });
 
       if (this.deps.indoorNav?.navigateToDestination) {
         const plan = await this.deps.indoorNav.navigateToDestination(query);
+        if (plan && plan.status === 'success') {
+          this.indoorSnapshot.isNavigating = true;
+          this.setState(VOICE_NAV_STATES.NAVIGATING);
+          return;
+        }
+      } else if (this.deps.slamControl?.current?.planRoute) {
+        const plan = await this.deps.slamControl.current.planRoute(query);
         if (plan && plan.status === 'success') {
           this.indoorSnapshot.isNavigating = true;
           this.setState(VOICE_NAV_STATES.NAVIGATING);
