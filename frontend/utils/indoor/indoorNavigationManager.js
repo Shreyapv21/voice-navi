@@ -1,5 +1,5 @@
 // frontend/utils/indoor/indoorNavigationManager.js
-import { planSlamRoute, resetSlamSession, fetchSlamStatus } from "./indoorApi.js";
+import { planSlamRoute } from "./indoorApi.js";
 
 /**
  * Real-Time Visual SLAM Indoor Navigation Session Manager.

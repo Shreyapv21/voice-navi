@@ -1,5 +1,5 @@
-# app.py
-from fastapi import FastAPI, UploadFile, File, APIRouter, WebSocket, WebSocketDisconnect, Form 
+﻿# app.py
+from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect, Form 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -30,7 +30,6 @@ from utils.live_detection import start_live_detection, stop_live_detection, runn
 from utils.slam_engine import slam_instance
 from utils.indoor_perception import perception_engine
 
-router = APIRouter()
 
 # ---------------- Directories ----------------
 UPLOAD_DIR = "uploads"

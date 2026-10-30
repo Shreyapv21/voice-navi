@@ -1,34 +1,26 @@
 # Node
 node_modules/
-.env
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-venv/
-.env/
-
-# Logs
-*.log
-
-# Build
-frontend/build/
-
-
-# Python environments and caches
-.venv/
-__pycache__/
-*.py[cod]
-
-# Node dependencies and build output
-node_modules/
 dist/
 build/
+frontend/build/
+frontend/dist/
 
-# Secrets
+# Environment and Secrets
+.env
 .env.*
 !.env.example
 
-# Generated TTS audio
-uploads/*.mp3
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.env/
+
+# Runtime and Uploads
+uploads/*
+!uploads/.gitkeep
+audio_logs/*
+!audio_logs/.gitkeep
+*.log

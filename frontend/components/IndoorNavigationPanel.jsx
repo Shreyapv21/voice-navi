@@ -27,13 +27,11 @@ import {
 } from "@tabler/icons-react";
 import {
   sendSlamFrame,
-  fetchSlamStatus,
   resetSlamSession,
   planSlamRoute,
   checkSlamHealth
 } from "../utils/indoor/indoorApi.js";
 import { IndoorNavigationManager } from "../utils/indoor/indoorNavigationManager.js";
-import { useLanguage } from "../utils/LanguageContext.jsx";
 
 export function IndoorNavigationPanel({
   speakText,
@@ -46,7 +44,6 @@ export function IndoorNavigationPanel({
   liveTranscript,
   lastExecutedCommand
 }) {
-  const { t } = useLanguage();
 
   // ---------------- Session & SLAM States ----------------
   const [isScanning, setIsScanning] = useState(false);
@@ -626,41 +623,41 @@ export function IndoorNavigationPanel({
 
       // Color scheme based on classification
       let boxColor = "#38bdf8"; // Cyan for doors
-      let icon = "🚪";
+      let icon = "ðŸšª";
       let isDashed = false;
       if (obj.class_name === "elevator") {
         boxColor = "#fbbf24"; // Gold for elevator
-        icon = "🛗";
+        icon = "ðŸ›—";
       } else if (obj.class_name === "stairs") {
         boxColor = "#f59e0b"; // Amber for stairs
-        icon = "🪜";
+        icon = "ðŸªœ";
       } else if (obj.class_name === "person") {
         if (obj.is_moving) {
           boxColor = "#10b981"; // Emerald green
-          icon = "🚶";
+          icon = "ðŸš¶";
         } else {
           boxColor = "#34d399"; // Mint green
-          icon = "👤";
+          icon = "ðŸ‘¤";
         }
       } else if (obj.class_name === "fire_extinguisher") {
         boxColor = "#ef4444";
-        icon = "🧯";
+        icon = "ðŸ§¯";
       } else if (obj.class_name === "glass_door" || obj.class_name === "transparent_obstacle") {
         boxColor = "#06b6d4";
-        icon = "🪟";
+        icon = "ðŸªŸ";
         isDashed = true;
       } else if (obj.class_name === "floor_hazard" || obj.class_name === "pothole") {
         boxColor = "#e11d48";
-        icon = "⚠️";
+        icon = "âš ï¸";
       } else if (["chair", "couch", "table"].includes(obj.class_name)) {
         boxColor = "#f87171"; // Red for obstacle
-        icon = "🪑";
+        icon = "ðŸª‘";
       } else if (["backpack", "suitcase", "handbag"].includes(obj.class_name)) {
         boxColor = "#fb923c"; // Orange for bag
-        icon = "🎒";
+        icon = "ðŸŽ’";
       } else if (["exit_sign", "restroom", "reception", "room_landmark"].includes(obj.class_name)) {
         boxColor = "#a855f7"; // Purple for landmarks
-        icon = "📍";
+        icon = "ðŸ“";
       }
 
       // Bounding box
@@ -887,22 +884,22 @@ export function IndoorNavigationPanel({
         ctx.fillStyle = "#38bdf8";
         ctx.fillRect(lx - 6, ly - 6, 12, 12);
         ctx.fillStyle = "#7dd3fc";
-        ctx.fillText(`🚪 ${lm.label}`, lx + 8, ly + 4);
+        ctx.fillText(`ðŸšª ${lm.label}`, lx + 8, ly + 4);
       } else if (lm.type === "elevator") {
         ctx.fillStyle = "#fbbf24";
         ctx.fillRect(lx - 7, ly - 7, 14, 14);
         ctx.fillStyle = "#fde68a";
-        ctx.fillText(`🛗 ${lm.label}`, lx + 9, ly + 4);
+        ctx.fillText(`ðŸ›— ${lm.label}`, lx + 9, ly + 4);
       } else if (lm.type === "stairs") {
         ctx.fillStyle = "#f59e0b";
         ctx.fillRect(lx - 6, ly - 6, 12, 12);
         ctx.fillStyle = "#fcd34d";
-        ctx.fillText(`🪜 ${lm.label}`, lx + 8, ly + 4);
+        ctx.fillText(`ðŸªœ ${lm.label}`, lx + 8, ly + 4);
       } else if (lm.type === "exit") {
         ctx.fillStyle = "#10b981";
         ctx.fillRect(lx - 6, ly - 6, 12, 12);
         ctx.fillStyle = "#6ee7b7";
-        ctx.fillText(`🚪 ${lm.label}`, lx + 8, ly + 4);
+        ctx.fillText(`ðŸšª ${lm.label}`, lx + 8, ly + 4);
       } else {
         ctx.fillStyle = "#ef4444";
         ctx.beginPath();
@@ -1582,7 +1579,7 @@ export function IndoorNavigationPanel({
               Dynamic Discovered Map
             </span>
             <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-              Explored: {slamState.occupancy_summary?.explored_area_m2 || 0} m²
+              Explored: {slamState.occupancy_summary?.explored_area_m2 || 0} mÂ²
             </span>
           </div>
 
@@ -1719,7 +1716,7 @@ export function IndoorNavigationPanel({
         {routePlan && routePlan.steps && routePlan.steps[currentStepIndex] && (
           <div className="route-instruction-box">
             <div className="instruction-title">
-              Step {currentStepIndex + 1} of {routePlan.steps.length} — To {routePlan.destination}
+              Step {currentStepIndex + 1} of {routePlan.steps.length} â€” To {routePlan.destination}
             </div>
             <p className="instruction-text">{routePlan.steps[currentStepIndex].instruction}</p>
 

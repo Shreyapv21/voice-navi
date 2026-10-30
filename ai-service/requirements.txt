@@ -1,37 +1,15 @@
 fastapi
 uvicorn
-pyttsx3
-SpeechRecognition
-easyocr
+pydantic
+python-multipart
+edge-tts
+openai-whisper
+torch
+torchaudio
+pydub
 ultralytics
 opencv-python
 numpy
 Pillow
-# --- Core API ---
-fastapi
-uvicorn
-pydantic
-python-multipart   # for file uploads
-
-# --- Text-to-Speech (Microsoft Edge TTS) ---
-edge-tts
-
-# --- Speech-to-Text (OpenAI Whisper) ---
-openai-whisper
-torch
-torchaudio
-torchvision
-
-# --- Audio Processing ---
-librosa
-numpy
-scipy
-soundfile
-pydub
-
-# --- Object Detection (YOLOv8 by Ultralytics) ---
-ultralytics
-opencv-python
-
-# --- Misc ---
-uuid   # for generating unique filenames
+pytesseract
+gtts

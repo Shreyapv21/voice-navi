@@ -3,7 +3,7 @@ const FormData = require("form-data");
 const fs = require("fs");
 const Tesseract = require("tesseract.js");
 
-const AI_BASE_URL = "http://127.0.0.1:8000"; // FastAPI server
+const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:8000";
 
 // Text-to-Speech
 async function textToSpeech(text, lang = "en-US", voice = null) {
@@ -13,24 +13,36 @@ async function textToSpeech(text, lang = "en-US", voice = null) {
 
 // Speech-to-Text
 async function speechToText(filePath) {
-  const formData = new FormData();
-  formData.append("audio", fs.createReadStream(filePath));
+  try {
+    const formData = new FormData();
+    formData.append("audio", fs.createReadStream(filePath));
 
-  const response = await axios.post(`${AI_BASE_URL}/stt/`, formData, {
-    headers: formData.getHeaders(),
-  });
-  return response.data;
+    const response = await axios.post(`${AI_BASE_URL}/stt/`, formData, {
+      headers: formData.getHeaders(),
+    });
+    return response.data;
+  } finally {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlink(filePath, () => {});
+    }
+  }
 }
 
 // Object Detection
 async function detectObjects(filePath) {
-  const formData = new FormData();
-  formData.append("image", fs.createReadStream(filePath));
+  try {
+    const formData = new FormData();
+    formData.append("image", fs.createReadStream(filePath));
 
-  const response = await axios.post(`${AI_BASE_URL}/detect/`, formData, {
-    headers: formData.getHeaders(),
-  });
-  return response.data;
+    const response = await axios.post(`${AI_BASE_URL}/detect/`, formData, {
+      headers: formData.getHeaders(),
+    });
+    return response.data;
+  } finally {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlink(filePath, () => {});
+    }
+  }
 }
 
 // OCR Image
@@ -53,9 +65,9 @@ async function ocrImage(filePath) {
       throw fallbackError;
     }
   } finally {
-    fs.unlink(filePath, (err) => {
-      if (err && err.code !== 'ENOENT') console.error("Error deleting temp file:", err);
-    });
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlink(filePath, () => {});
+    }
   }
 }
 
