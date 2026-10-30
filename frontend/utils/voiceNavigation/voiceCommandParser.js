@@ -143,6 +143,37 @@ export function parseNavigationUtterance(raw) {
     return { type: "STOP_SPEAKING" };
   }
 
+  // 1.2 STOP VOICE ASSISTANCE / DISABLE VOICE CONTROL
+  if (
+    containsAny(text, [
+      "stop voice assistance",
+      "turn off voice assistance",
+      "disable voice assistance",
+      "stop voice control",
+      "turn off voice control",
+      "disable voice control",
+      "stop listening",
+      "stop assistant",
+      "stop voice",
+      "quit voice",
+      "exit voice mode",
+      "exit voice",
+      "close voice",
+      "ಧ್ವನಿ ನಿಯಂತ್ರಣ ನಿಲ್ಲಿಸಿ",
+      "ಆಲಿಸುವುದನ್ನು ನಿಲ್ಲಿಸಿ",
+      "ಧ್ವನಿ ಸಹಾಯ ನಿಲ್ಲಿಸಿ",
+      "वॉयस सहायता बंद करो",
+      "वॉयस कंट्रोल बंद करो",
+      "सुनना बंद करो",
+      "குரல் உதவியை நிறுத்து",
+      "கேட்பதை நிறுத்து",
+      "వాయిస్ సహాయాన్ని ఆపండి",
+      "వినడం ఆపండి"
+    ])
+  ) {
+    return { type: "STOP_VOICE_ASSISTANCE" };
+  }
+
   // 2. HELP / WHAT CAN I SAY
   if (
     containsAny(text, [
@@ -265,6 +296,10 @@ export function parseNavigationUtterance(raw) {
       "stop a scan",
       "stop the scan",
       "stop indoor scan",
+      "stop indoor navigation",
+      "stop indoor",
+      "end indoor navigation",
+      "cancel indoor navigation",
       "stop scanning",
       "end scan",
       "end the scan",
@@ -302,6 +337,8 @@ export function parseNavigationUtterance(raw) {
       "pause a scan",
       "pause the scan",
       "pause indoor scan",
+      "pause indoor navigation",
+      "pause indoor",
       "pause scanning",
       "pause mapping",
       "ಸ್ಲ್ಯಾಮ್ ವಿರಾಮಗೊಳಿಸಿ",
@@ -330,6 +367,8 @@ export function parseNavigationUtterance(raw) {
       "resume a scan",
       "resume the scan",
       "resume indoor scan",
+      "resume indoor navigation",
+      "resume indoor",
       "resume scanning",
       "continue the scan",
       "continue scanning",
@@ -359,6 +398,8 @@ export function parseNavigationUtterance(raw) {
       "reset indoor scan",
       "reset map",
       "reset indoor map",
+      "reset indoor mapping",
+      "reset mapping",
       "reset slam",
       "restart scan",
       "restart indoor scan",
@@ -504,6 +545,7 @@ export function parseNavigationUtterance(raw) {
 
   // 3. INDOOR NAVIGATION COMMANDS
   if (
+    !containsAny(text, ["stop", "pause", "cancel", "end", "close", "quit"]) &&
     containsAny(text, [
       "start indoor navigation",
       "begin indoor navigation",
@@ -561,15 +603,20 @@ export function parseNavigationUtterance(raw) {
 
   // 4. STOP / CANCEL NAVIGATION
   if (
-    containsAny(text, [
-      "stop navigation",
-      "cancel navigation",
-      "end navigation",
-      "stop navigating",
-      "cancel",
-      "stop",
-      "halt",
-      "quit",
+    !text.includes("bus stop") &&
+    !text.includes("tram stop") &&
+    !text.includes("metro stop") &&
+    !/^(?:take me to|navigate to|directions to|guide me to|find)\b/i.test(text) &&
+    (
+      text === "stop" ||
+      text === "cancel" ||
+      text === "halt" ||
+      text === "quit" ||
+      containsAny(text, [
+        "stop navigation",
+        "cancel navigation",
+        "end navigation",
+        "stop navigating",
       "नेविगेशन बंद",
       "नेविगेशन रोको",
       "रद्द करो",
@@ -594,7 +641,7 @@ export function parseNavigationUtterance(raw) {
       "ఆపు",
       "చాలు"
     ])
-  ) {
+  )) {
     return { type: "STOP_NAVIGATION" };
   }
 
@@ -641,6 +688,10 @@ export function parseNavigationUtterance(raw) {
   if (
     containsAny(text, [
       "repeat instruction",
+      "repeat that",
+      "what did you say",
+      "repeat please",
+      "repeat again",
       "repeat the last instruction",
       "say that again",
       "repeat direction",
@@ -837,6 +888,8 @@ export function parseNavigationUtterance(raw) {
       "read the signboard",
       "read signboard",
       "read this text",
+      "read the text",
+      "read out the text",
       "read text",
       "read this",
       "what does this board say",

@@ -126,6 +126,10 @@ export function IndoorNavigationPanel({
   const managerRef = useRef(null);
   const lastWarningTimeRef = useRef(0);
   const lastSpokenPerceptionRef = useRef({});
+  const isScanningRef = useRef(false);
+  const sessionIdRef = useRef(0);
+  const activeAbortControllerRef = useRef(null);
+  const lastProcessedSyncTsRef = useRef(0);
 
   // ---------------- Initialize Indoor Manager ----------------
   useEffect(() => {
@@ -181,6 +185,13 @@ export function IndoorNavigationPanel({
 
   // ---------------- Camera & SLAM Control ----------------
   const startIndoorScan = async () => {
+    if (isScanningRef.current) return;
+
+    sessionIdRef.current += 1;
+    const currentSessionId = sessionIdRef.current;
+    isScanningRef.current = true;
+    activeAbortControllerRef.current = new AbortController();
+
     setCameraError("");
     setNavigationFeedback("");
     setRoutePlan(null);
@@ -192,6 +203,7 @@ export function IndoorNavigationPanel({
         const msg = "Camera requires HTTPS. Please access this web application via your HTTPS ngrok URL on iPhone.";
         setCameraError(msg);
         speakText(msg);
+        isScanningRef.current = false;
         return;
       }
     }
@@ -200,6 +212,7 @@ export function IndoorNavigationPanel({
       const msg = "Browser camera API (getUserMedia) is unavailable. Please ensure HTTPS is enabled.";
       setCameraError(msg);
       speakText(msg);
+      isScanningRef.current = false;
       return;
     }
 
@@ -224,8 +237,19 @@ export function IndoorNavigationPanel({
       }
     }
 
+    // Abort if session was stopped while waiting for camera permission
+    if (!isScanningRef.current || sessionIdRef.current !== currentSessionId) {
+      if (stream) {
+        stream.getTracks().forEach((track) => {
+          try { track.stop(); } catch {}
+        });
+      }
+      return;
+    }
+
     if (!stream) {
-      let friendlyError = "Camera access failed: " + (lastErr?.message || "Unknown error");
+      isScanningRef.current = false;
+      let friendlyError = "Camera is currently unavailable. Please check camera access.";
       if (lastErr?.name === "NotAllowedError" || lastErr?.name === "PermissionDeniedError") {
         friendlyError = "Camera permission denied. Please allow camera access in your iOS / Safari settings.";
       } else if (lastErr?.name === "NotFoundError" || lastErr?.name === "DevicesNotFoundError") {
@@ -254,11 +278,25 @@ export function IndoorNavigationPanel({
       }
     }
 
+    if (!isScanningRef.current || sessionIdRef.current !== currentSessionId) {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => {
+          try { track.stop(); } catch {}
+        });
+        mediaStreamRef.current = null;
+      }
+      return;
+    }
+
     // 4. Initialize SLAM mapping session once on backend
     try {
       await resetSlamSession();
     } catch (resetErr) {
       console.warn("SLAM reset warning:", resetErr);
+    }
+
+    if (!isScanningRef.current || sessionIdRef.current !== currentSessionId) {
+      return;
     }
 
     setIsScanning(true);
@@ -277,13 +315,29 @@ export function IndoorNavigationPanel({
   };
 
   const stopIndoorScan = useCallback(() => {
+    // 1. Immediately invalidate current session and mark scanning stopped synchronously
+    isScanningRef.current = false;
+    sessionIdRef.current += 1;
+
+    // 2. Abort any active in-flight SLAM or perception requests
+    if (activeAbortControllerRef.current) {
+      try {
+        activeAbortControllerRef.current.abort();
+      } catch {}
+      activeAbortControllerRef.current = null;
+    }
+
+    // 3. Clear frame processing timer
     if (processingIntervalRef.current) {
       clearInterval(processingIntervalRef.current);
       processingIntervalRef.current = null;
     }
 
+    // 4. Stop camera tracks immediately
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current.getTracks().forEach((track) => {
+        try { track.stop(); } catch {}
+      });
       mediaStreamRef.current = null;
     }
 
@@ -291,23 +345,52 @@ export function IndoorNavigationPanel({
       videoRef.current.srcObject = null;
     }
 
+    // 5. Reset react states
     setIsScanning(false);
     setIsPaused(false);
     setRoutePlan(null);
+    setCurrentStepIndex(0);
+
+    // 6. Stop indoor navigation manager guidance
     managerRef.current?.stopNavigation(true);
 
-    // Clear overlay
+    // 7. Clear perception overlay canvas
     const overlay = perceptionOverlayRef.current;
     if (overlay) {
       const ctx = overlay.getContext("2d");
       ctx.clearRect(0, 0, overlay.width, overlay.height);
     }
 
+    // 8. Clear perception state and announcement cooldowns
+    setPerceptionState((prev) => ({
+      ...prev,
+      objects: [],
+      structural_perception: {
+        corridor_detected: false,
+        corridor_heading: "centered",
+        heading_guidance: "Indoor navigation stopped.",
+        vanishing_point: [240, 160],
+        floor_polygon: []
+      }
+    }));
+    lastSpokenPerceptionRef.current = {};
+    lastWarningTimeRef.current = 0;
+
     setDiagnostics((prev) => ({
       ...prev,
       cameraStatus: "Camera stopped",
       cameraResolution: "0x0"
     }));
+
+    // 9. Cancel speech synthesis immediately to purge stale announcements
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
+
+    // 10. Reset SLAM session on backend in background
+    resetSlamSession().catch((err) => console.warn("SLAM session reset on stop:", err));
 
     speakText("Indoor navigation session stopped.");
   }, [speakText]);
@@ -323,13 +406,13 @@ export function IndoorNavigationPanel({
   }, [speakText]);
 
   const resumeIndoorScan = useCallback(() => {
-    if (isScanning && !processingIntervalRef.current) {
+    if (isScanningRef.current && !processingIntervalRef.current) {
       processingIntervalRef.current = setInterval(captureAndSendFrame, 500);
       setIsPaused(false);
       setDiagnostics((prev) => ({ ...prev, cameraStatus: "Live stream running" }));
       speakText("Resuming indoor navigation.");
     }
-  }, [isScanning, speakText]);
+  }, [speakText]);
 
   const resetIndoorScan = useCallback(async () => {
     try {
@@ -363,53 +446,74 @@ export function IndoorNavigationPanel({
         pause: pauseIndoorScan,
         resume: resumeIndoorScan,
         reset: resetIndoorScan,
-        isScanning: () => isScanning,
+        isScanning: () => isScanningRef.current,
+        isExploring: () => isScanningRef.current,
         getCurrentPose: () => slamState.pose,
         getLatestPerception: () => perceptionState,
         getDiscoveredMap: () => slamState.map,
         planRoute: (dest) => handlePlanRoute(dest)
       };
     }
-  }, [slamControlRef, isScanning, slamState, perceptionState, stopIndoorScan, pauseIndoorScan, resumeIndoorScan, resetIndoorScan]);
+  }, [slamControlRef, slamState, perceptionState, stopIndoorScan, pauseIndoorScan, resumeIndoorScan, resetIndoorScan]);
 
-  // Handle external UI sync commands
+  // Handle external UI sync commands with single-shot timestamp deduplication
   useEffect(() => {
     if (!uiSync) return;
-    if (uiSync.slamCommand === "start" && !isScanning) {
+    if (uiSync.ts && uiSync.ts <= lastProcessedSyncTsRef.current) {
+      return;
+    }
+    if (uiSync.ts) {
+      lastProcessedSyncTsRef.current = uiSync.ts;
+    }
+
+    if (uiSync.slamCommand === "start" && !isScanningRef.current) {
       startIndoorScan();
-    } else if (uiSync.slamCommand === "stop" && isScanning) {
+    } else if (uiSync.slamCommand === "stop") {
       stopIndoorScan();
-    } else if (uiSync.slamCommand === "pause" && isScanning) {
+    } else if (uiSync.slamCommand === "pause" && isScanningRef.current) {
       pauseIndoorScan();
-    } else if (uiSync.slamCommand === "resume" && isScanning) {
+    } else if (uiSync.slamCommand === "resume" && isScanningRef.current) {
       resumeIndoorScan();
     } else if (uiSync.slamCommand === "reset") {
       resetIndoorScan();
     }
-  }, [uiSync]);
+  }, [uiSync, stopIndoorScan, pauseIndoorScan, resumeIndoorScan, resetIndoorScan]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isScanningRef.current = false;
+      sessionIdRef.current += 1;
+      if (activeAbortControllerRef.current) {
+        try { activeAbortControllerRef.current.abort(); } catch {}
+      }
       if (processingIntervalRef.current) clearInterval(processingIntervalRef.current);
-      if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => {
+          try { t.stop(); } catch {}
+        });
+      }
     };
   }, []);
 
   // ---------------- Continuous Frame Capture & Processing ----------------
   const captureAndSendFrame = async () => {
-    if (isFrameProcessingRef.current) return;
+    if (!isScanningRef.current || isFrameProcessingRef.current) return;
     const video = videoRef.current;
     if (!video || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
       return;
     }
 
     isFrameProcessingRef.current = true;
+    const currentSessionId = sessionIdRef.current;
     const startTime = performance.now();
 
     try {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        isFrameProcessingRef.current = false;
+        return;
+      }
 
       canvas.width = 480;
       canvas.height = 360;
@@ -418,13 +522,20 @@ export function IndoorNavigationPanel({
 
       canvas.toBlob(
         async (blob) => {
-          if (!blob) {
+          if (!blob || !isScanningRef.current || sessionIdRef.current !== currentSessionId) {
             isFrameProcessingRef.current = false;
             return;
           }
 
           try {
-            const data = await sendSlamFrame(blob, ocrText || null);
+            const signal = activeAbortControllerRef.current?.signal;
+            const data = await sendSlamFrame(blob, ocrText || null, signal);
+
+            // Discard late response if scan was stopped while request was in-flight
+            if (!isScanningRef.current || sessionIdRef.current !== currentSessionId) {
+              return;
+            }
+
             const latency = Math.round(performance.now() - startTime);
 
             setDiagnostics((prev) => ({
@@ -474,6 +585,9 @@ export function IndoorNavigationPanel({
               }));
             }
           } catch (netErr) {
+            if (netErr.name === "AbortError" || !isScanningRef.current || sessionIdRef.current !== currentSessionId) {
+              return;
+            }
             console.warn("SLAM frame network error:", netErr);
             setDiagnostics((prev) => ({
               ...prev,
@@ -488,7 +602,9 @@ export function IndoorNavigationPanel({
         0.65
       );
     } catch (err) {
-      console.warn("Frame capture error:", err);
+      if (isScanningRef.current) {
+        console.warn("Frame capture error:", err);
+      }
       isFrameProcessingRef.current = false;
     }
   };
@@ -724,7 +840,7 @@ export function IndoorNavigationPanel({
       }
     } catch (err) {
       console.error("Route planning error:", err);
-      const msg = `Route planning failed: ${err.message}`;
+      const msg = "A walking route could not be found. Please try another destination.";
       setNavigationFeedback(msg);
       speakText(msg);
     } finally {
@@ -1322,7 +1438,7 @@ export function IndoorNavigationPanel({
               className={`slam-btn ${isListening ? "slam-btn-listening" : "slam-btn-secondary"}`}
               onClick={onToggleListening}
               aria-label={isListening ? "Voice control listening active. Tap to mute." : "Voice control inactive. Tap to enable voice control."}
-              title={isListening ? "Voice Listening Active (Alt+V)" : "Enable Voice Control (Alt+V)"}
+              title={isListening ? "Voice Listening Active" : "Enable Voice Control"}
             >
               {isListening ? (
                 <>

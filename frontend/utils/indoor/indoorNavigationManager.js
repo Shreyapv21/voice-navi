@@ -51,7 +51,7 @@ export class IndoorNavigationManager {
    * Update manager with new SLAM frame result from the camera stream.
    */
   handleSlamFrameResult(data) {
-    if (!data) return;
+    if (!data || this.status === "STOPPED") return;
 
     if (data.pose) {
       this.currentPose = data.pose;

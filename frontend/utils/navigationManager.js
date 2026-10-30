@@ -154,27 +154,44 @@ export class NavigationManager {
   async startNavigation(destinationQuery, languageCode = "en-US", options = {}) {
     try {
       this.stopNavigation(false);
+
+      if (!destinationQuery || (typeof destinationQuery === "string" && !destinationQuery.trim())) {
+        const userMsg = "Please provide a valid destination name or tap a point on the map.";
+        this.isNavigating = false;
+        this.onStateChange({ isNavigating: false, status: "ERROR", errorMessage: userMsg });
+        this.onError("INVALID_DESTINATION", userMsg);
+        return false;
+      }
+
+      const destDisplayName = typeof destinationQuery === "object"
+        ? (destinationQuery.name || `${destinationQuery.latitude?.toFixed(4)}, ${destinationQuery.longitude?.toFixed(4)}`)
+        : destinationQuery.trim();
+
+      console.log(`[NavigationManager] Initiating walking navigation to: "${destDisplayName}"`);
+
       this.isNavigating = true;
       this.onStateChange({
         isNavigating: true,
         status: "RESOLVING",
-        destinationName: typeof destinationQuery === "object" ? (destinationQuery.name || "Selected Destination") : destinationQuery,
+        destinationName: destDisplayName,
         steps: []
       });
 
-      // 1. Get user GPS location or fallback to demo origin
+      // 1. Acquire current GPS location (or use provided origin)
       let origin = options.origin || null;
       let isDemo = !!options.isDemo;
 
-      if (!origin) {
+      if (!origin || typeof origin.latitude !== "number" || typeof origin.longitude !== "number") {
         try {
+          console.log("[NavigationManager] Requesting GPS coordinates from device...");
           origin = await this.getCurrentLocation();
           this.currentPosition = origin;
           this.isDemoLocation = false;
+          console.log(`[NavigationManager] Live GPS acquired: (${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}, accuracy: ±${Math.round(origin.accuracy || 0)}m)`);
         } catch (geoErr) {
-          console.warn("Real GPS acquisition failed:", geoErr.message);
+          console.warn("[NavigationManager] Real GPS acquisition failed:", geoErr.message);
           let errorCode = "LOCATION_UNAVAILABLE";
-          let userMsg = "Unable to determine your location. Please check your GPS signal.";
+          let userMsg = "Unable to determine your GPS location. Please check your device location settings.";
           if (geoErr && geoErr.code === 1) {
             errorCode = "LOCATION_PERMISSION_DENIED";
             userMsg = "Location permission is required to navigate. Please allow location access in your browser.";
@@ -183,7 +200,7 @@ export class NavigationManager {
             userMsg = "GPS position is unavailable. Please ensure location services are enabled on your device.";
           } else if (geoErr && geoErr.code === 3) {
             errorCode = "LOCATION_TIMEOUT";
-            userMsg = "Location request timed out. Please try again or refresh your GPS.";
+            userMsg = "Location request timed out. Please tap GPS to retry.";
           }
           this.isNavigating = false;
           this.onStateChange({
@@ -199,37 +216,52 @@ export class NavigationManager {
         this.isDemoLocation = isDemo;
       }
 
-      // 2. Query backend route endpoint
+      // 2. Query backend route endpoint with verified origin coordinates
+      console.log(`[NavigationManager] Calling /api/navigation/route with origin: (${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)})`);
       const response = await fetch("/api/navigation/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          origin: { latitude: origin.latitude, longitude: origin.longitude },
+          origin: {
+            latitude: origin.latitude,
+            longitude: origin.longitude,
+            isDemo: !!isDemo
+          },
           destination: destinationQuery,
           language: languageCode
         })
       });
 
       const data = await response.json();
+      console.log(`[NavigationManager] Route API responded: HTTP ${response.status}, status="${data.status}"`, data.message || `Found ${data.steps?.length} steps`);
 
       if (data.status === "unconfigured") {
         this.isNavigating = false;
-        this.onStateChange({ isNavigating: false, status: "UNCONFIGURED" });
+        this.onStateChange({ isNavigating: false, status: "UNCONFIGURED", errorMessage: data.message });
         this.onError("API_KEY_UNCONFIGURED", data.message);
         return false;
       }
 
       if (data.status === "ambiguous") {
         this.isNavigating = false;
-        this.onStateChange({ isNavigating: false, status: "AMBIGUOUS", candidates: data.candidates });
+        this.onStateChange({ isNavigating: false, status: "AMBIGUOUS", candidates: data.candidates, errorMessage: data.message });
         this.onError("DESTINATION_AMBIGUOUS", data.message, data.candidates);
+        return false;
+      }
+
+      if (data.status === "not_found") {
+        this.isNavigating = false;
+        const notFoundMsg = data.message || `Could not find destination "${destDisplayName}". Please check the spelling or provide a nearby landmark.`;
+        this.onStateChange({ isNavigating: false, status: "ERROR", errorMessage: notFoundMsg });
+        this.onError("DESTINATION_NOT_FOUND", notFoundMsg);
         return false;
       }
 
       if (data.status !== "success" || !data.steps || data.steps.length === 0) {
         this.isNavigating = false;
-        this.onStateChange({ isNavigating: false, status: "ROUTE_NOT_FOUND" });
-        this.onError("ROUTE_NOT_FOUND", data.message || `No route could be found.`);
+        const routeErrMsg = data.message || `No walking route could be found to "${destDisplayName}".`;
+        this.onStateChange({ isNavigating: false, status: "ERROR", errorMessage: routeErrMsg });
+        this.onError("ROUTE_NOT_FOUND", routeErrMsg);
         return false;
       }
 
@@ -299,12 +331,19 @@ export class NavigationManager {
 
         const userLat = position.coords.latitude;
         const userLng = position.coords.longitude;
-        this.currentPosition = { latitude: userLat, longitude: userLng };
+        const accuracy = position.coords.accuracy;
+        this.currentPosition = { latitude: userLat, longitude: userLng, accuracy, isDemo: false };
+        console.log(`[NavigationManager Watch] Lat: ${userLat.toFixed(5)}, Lng: ${userLng.toFixed(5)}, Accuracy: ±${Math.round(accuracy || 0)}m`);
+
+        // Emit location update so Leaflet map marker moves continuously
+        this.onStateChange({
+          currentPosition: this.currentPosition
+        });
 
         this.processLocationUpdate(userLat, userLng, languageCode);
       },
       (error) => {
-        console.warn("Geolocation watch error:", error);
+        console.warn("[NavigationManager Watch Error]:", error.message);
       },
       {
         enableHighAccuracy: true,

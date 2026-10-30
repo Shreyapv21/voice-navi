@@ -27,9 +27,9 @@ export async function checkSlamHealth() {
 }
 
 /**
- * Send captured camera frame to the Visual SLAM engine.
+ * Send captured camera frame to the Visual SLAM engine with abort support.
  */
-export async function sendSlamFrame(imageBlob, ocrText = null) {
+export async function sendSlamFrame(imageBlob, ocrText = null, signal = null) {
   const formData = new FormData();
   formData.append("file", imageBlob, "slam_frame.jpg");
   if (ocrText) {
@@ -40,18 +40,29 @@ export async function sendSlamFrame(imageBlob, ocrText = null) {
   try {
     const res = await fetch("/slam/frame/", {
       method: "POST",
-      body: formData
+      body: formData,
+      signal
     });
     if (res.ok) {
       return await res.json();
     }
-  } catch {
+  } catch (err) {
+    if (err.name === "AbortError" || signal?.aborted) {
+      throw err;
+    }
     // Network retry through backend proxy
+  }
+
+  if (signal?.aborted) {
+    const abortErr = new Error("SLAM frame aborted");
+    abortErr.name = "AbortError";
+    throw abortErr;
   }
 
   const res = await fetch(`${API_BASE}/slam/frame`, {
     method: "POST",
-    body: formData
+    body: formData,
+    signal
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => "");

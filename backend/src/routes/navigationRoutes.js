@@ -30,8 +30,10 @@ router.post("/route", async (req, res) => {
     }
 
     const langCode = language || "en";
+    const destStr = typeof destination === "object" ? (destination.name || `${destination.latitude}, ${destination.longitude}`) : destination;
+    console.log(`[NavigationRoute API] Received /route request: destination="${destStr}", origin=(${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}, isDemo: ${!!origin.isDemo}), lang=${langCode}`);
 
-    // 1. Resolve destination using Google Places API (New)
+    // 1. Resolve destination using OpenStreetMap Nominatim
     const placeResult = await resolveDestination(destination, origin, langCode);
 
     if (placeResult.status === "unconfigured") {
@@ -50,18 +52,21 @@ router.post("/route", async (req, res) => {
     }
 
     if (placeResult.status !== "success" || !placeResult.place) {
+      console.warn(`[NavigationRoute API] Geocode failed for "${destStr}": status=${placeResult.status}, message=${placeResult.message}`);
       return res.status(200).json({
         status: placeResult.status || "not_found",
-        message: placeResult.message || `Could not find "${destination}".`
+        message: placeResult.message || `Could not find "${destStr}".`
       });
     }
 
     const destinationPlace = placeResult.place;
+    console.log(`[NavigationRoute API] Resolved destination place: "${destinationPlace.name}" at (${destinationPlace.latitude}, ${destinationPlace.longitude})`);
 
-    // 2. Compute walking route with Google Routes API
+    // 2. Compute walking route using OpenStreetMap OSRM Foot routing
     const routeResult = await calculateWalkingRoute(
       origin,
       {
+        name: destinationPlace.name,
         latitude: destinationPlace.latitude,
         longitude: destinationPlace.longitude
       },
@@ -69,12 +74,15 @@ router.post("/route", async (req, res) => {
     );
 
     if (routeResult.status !== "success") {
+      console.warn(`[NavigationRoute API] Walking route calculation failed: status=${routeResult.status}, message=${routeResult.message}`);
       return res.status(200).json({
         status: routeResult.status,
         message: routeResult.message,
         place: destinationPlace
       });
     }
+
+    console.log(`[NavigationRoute API] Walking route successfully calculated: ${routeResult.distanceMeters}m, ${routeResult.steps?.length} steps to "${destinationPlace.name}"`);
 
     return res.json({
       status: "success",

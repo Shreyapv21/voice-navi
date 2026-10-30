@@ -18,7 +18,7 @@ export const en = {
 
   // Accessibility & Onboarding
   voice_nav_experience_title: "Voice-First Navigation",
-  voice_nav_experience_subtitle: "Primary interface for spoken destinations and turn-by-turn guidance. Tap the button or press Alt+V to begin.",
+  voice_nav_experience_subtitle: "Primary interface for spoken destinations and turn-by-turn guidance. Tap anywhere to begin.",
   voice_nav_perms_note: "Enable microphone permission when prompted. Optional camera access improves obstacle warnings.",
   enable_voice_nav: "Start Voice Navigation",
   end_voice_nav: "End Voice Session",
@@ -49,7 +49,7 @@ export const en = {
   enable_voice_commands: "Enable Voice Commands",
   stop_voice_listening: "Stop Voice Listening",
   voice_control_active: "Voice Control Active",
-  listening_for_commands: "Listening for commands... Speak now (or press Alt+V).",
+  listening_for_commands: "Listening for commands... Speak now.",
   heard: "Heard",
   last_action: "Last Action",
 
@@ -202,9 +202,12 @@ export const en = {
 
   // System & Spoken Messages
   messages: {
-    onboarding: "Welcome to Dhristi. You can control this entire app by voice or keyboard. Say start navigation followed by a destination, what is in front of me to check obstacles, or read this to read text. Press Alt+V to toggle voice listening. Say help at any time.",
+    onboarding: "Welcome to Dhristi. Voice assistance is ready. Say start navigation followed by a destination, what is around me to check obstacles, or read text. Say help at any time.",
     voiceControlEnabled: "Voice control listening enabled. You can speak commands.",
     voiceControlDisabled: "Voice control stopped.",
+    voiceAssistantReady: "Welcome to Dhristi. Voice assistance is ready. You can say: Start navigation, Indoor navigation, Read text, or What is around me?",
+    voiceAssistantActivationPrompt: "Welcome to Dhristi. Tap anywhere to enable hands-free voice assistance.",
+    unrecognizedCommand: "I heard \"{transcript}\", but I did not recognize that command. Say help for available commands, or say start navigation.",
     cameraStarted: "Live camera detection started.",
     cameraStopped: "Live detection stopped.",
     cameraError: "Camera permission is required for live detection.",
@@ -220,8 +223,8 @@ export const en = {
     navArrived: "You have arrived at your destination.",
     navOffRoute: "You appear to be off the route. Recalculating route.",
     navStopped: "Navigation stopped.",
-    navApiKeyMissing: "Google Maps API key is not configured in backend. Please configure GOOGLE_MAPS_API_KEY in backend/.env.",
-    navGeoError: "Unable to get your current GPS location. Please ensure location services are enabled.",
+    navApiKeyMissing: "Navigation routing service is temporarily unconfigured. Please try again later.",
+    navGeoError: "Your current location is unavailable. Please check location access.",
     navPaused: "Navigation paused.",
     navResumed: "Navigation resumed.",
     navNoActiveRoute: "There is no active route to repeat.",

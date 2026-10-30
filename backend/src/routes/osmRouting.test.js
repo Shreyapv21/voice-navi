@@ -30,6 +30,13 @@ describe("OpenStreetMap Foot Routing Service", () => {
     assert.ok(res.place.latitude > 0);
   });
 
+  it("does not silently substitute Mysuru for real navigation when geocoding fails", async () => {
+    const realOrigin = { latitude: 13.073, longitude: 77.792, isDemo: false };
+    const res = await resolveDestination("nonexistent_random_place_123xyz", realOrigin);
+    assert.strictEqual(res.status, "not_found");
+    assert.match(res.message, /could not find/i);
+  });
+
   it("calculates real pedestrian route between demo points", async () => {
     const origin = { latitude: 12.3086, longitude: 76.6531 };
     const destination = { latitude: 12.3149, longitude: 76.6463, name: "Mysuru Railway Station" };

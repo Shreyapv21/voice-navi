@@ -24,22 +24,19 @@ import {
   translateInstructionText
 } from "../utils/languages.js";
 
-// Demo origin coordinates (Sayyaji Rao Road, Mysuru City Center)
-const DEMO_ORIGIN = {
-  latitude: 12.3086,
-  longitude: 76.6531,
-  accuracy: 5,
-  isDemo: true,
-  label: "Demo Origin (Sayyaji Rao Road, Mysuru)"
+// Default fallback map center if GPS has not yet responded (Karnataka region)
+const DEFAULT_MAP_CENTER = {
+  latitude: 12.9716,
+  longitude: 77.5946
 };
 
-// Preset demo destinations
-const DEMO_DESTINATIONS = [
-  { id: "railway_station", IconComponent: IconTrain, en: "Mysuru Railway Station", kn: "ರೈಲ್ವೆ ನಿಲ್ದಾಣ", hi: "रेलवे स्टेशन", ta: "இரயில் நிலையம்", te: "రైల్వే స్టేషన్", latitude: 12.3149, longitude: 76.6463 },
-  { id: "hospital", IconComponent: IconFirstAidKit, en: "Apollo BGS Hospital", kn: "ಹತ್ತಿರದ ಆಸ್ಪತ್ರೆ", hi: "निकटतम अस्पताल", ta: "அருகிலுள்ள மருத்துவமனை", te: "సమీప ఆసుపత్రి", latitude: 12.2982, longitude: 76.6268 },
-  { id: "bus_stop", IconComponent: IconBus, en: "City Bus Stand", kn: "ಹತ್ತಿರದ ಬಸ್ ನಿಲ್ದಾಣ", hi: "निकटतम बस स्टॉप", ta: "அருகிலுள்ள பேருந்து நிறுத்தம்", te: "సమీప బస్ స్టాప్", latitude: 12.3086, longitude: 76.6552 },
-  { id: "pharmacy", IconComponent: IconPill, en: "MedPlus Pharmacy", kn: "ಹತ್ತಿರದ ಔಷಧಾಲಯ", hi: "निकटतम दवा दुकान", ta: "அருகிலுள்ள மருந்தகம்", te: "సమీప ఫಾರ್ಮసీ", latitude: 12.3125, longitude: 76.6510 },
-  { id: "palace", IconComponent: IconBuilding, en: "Mysuru Palace", kn: "ಮೈಸೂರು ಅರಮನೆ", hi: "मैसूर महल", ta: "மைசூர் அரண்மனை", te: "మైసూర్ ప్యాలెస్", latitude: 12.3051, longitude: 76.6551 }
+// Generic walking destination categories - search dynamically around the user's real GPS position
+const WALKING_CATEGORIES = [
+  { id: "hospital", IconComponent: IconFirstAidKit, query: "Hospital", en: "Nearest Hospital", kn: "ಹತ್ತಿರದ ಆಸ್ಪತ್ರೆ", hi: "निकटतम अस्पताल", ta: "அருகிலுள்ள மருத்துவமனை", te: "సమీప ఆసుపత్రి" },
+  { id: "bus_stop", IconComponent: IconBus, query: "Bus Stand", en: "Bus Stop / Stand", kn: "ಬಸ್ ನಿಲ್ದಾಣ", hi: "बस स्टॉप", ta: "பேருந்து நிறுத்தம்", te: "బస్ స్టాప్" },
+  { id: "pharmacy", IconComponent: IconPill, query: "Pharmacy", en: "Pharmacy / Medical", kn: "ಔಷಧಾಲಯ", hi: "दवा की दुकान", ta: "மருந்தகம்", te: "ఫಾರ್ಮసీ" },
+  { id: "railway_station", IconComponent: IconTrain, query: "Railway Station", en: "Railway Station", kn: "ರೈಲ್ವೆ ನಿಲ್ದಾಣ", hi: "रेलवे स्टेशन", ta: "இரயில் நிலையம்", te: "రైల్వే స్టేషన్" },
+  { id: "restaurant", IconComponent: IconBuilding, query: "Restaurant", en: "Restaurant / Food", kn: "ಉಪಹಾರ ಗೃಹ", hi: "रेस्तरां", ta: "உணவகம்", te: "రెస్టారెంట్" }
 ];
 
 export function OutdoorMap({
@@ -163,11 +160,15 @@ export function OutdoorMap({
     // Update User Location Marker
     if (userLocation?.latitude && userLocation?.longitude) {
       const userLatLng = [userLocation.latitude, userLocation.longitude];
+      const accText = userLocation.accuracy ? `<br/>Accuracy: ±${Math.round(userLocation.accuracy)}m` : "";
+      const popupText = `<b>${userLocation.isDemo ? "📍 Demo Location (Testing)" : "📍 Your GPS Location"}</b><br/>Lat: ${userLocation.latitude.toFixed(5)}<br/>Lng: ${userLocation.longitude.toFixed(5)}${accText}`;
+
       if (userMarkerRef.current) {
         userMarkerRef.current.setLatLng(userLatLng);
+        userMarkerRef.current.setPopupContent(popupText);
       } else {
         userMarkerRef.current = L.marker(userLatLng, { icon: userIcon, zIndexOffset: 1000 })
-          .bindPopup(`<b>${userLocation.isDemo ? "📍 Demo Location" : "You (GPS)"}</b><br/>${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`)
+          .bindPopup(popupText)
           .addTo(map);
       }
     } else if (userMarkerRef.current) {
@@ -248,8 +249,8 @@ export function OutdoorMap({
       map.fitBounds(polylineGroupRef.current.getBounds(), { padding: [40, 40] });
     } else if (userLocation?.latitude && userLocation?.longitude) {
       map.setView([userLocation.latitude, userLocation.longitude], 16);
-    } else {
-      map.setView([DEMO_ORIGIN.latitude, DEMO_ORIGIN.longitude], 15);
+    } else if (onRequestLocation) {
+      onRequestLocation();
     }
   };
 
@@ -386,24 +387,25 @@ export function OutdoorMap({
           <IconMapPin size={18} aria-hidden="true" style={{ color: "#38bdf8" }} />
           <span>{language.startsWith("kn") ? "ತ್ವರಿತ ನಡಿಗೆ ಗಮ್ಯಸ್ಥಾನಗಳು:" : language.startsWith("hi") ? "त्वरित पैदल गंतव्य:" : language.startsWith("ta") ? "விரைவான நடைபயண இலக்குகள்:" : language.startsWith("te") ? "త్వరిత నడక గమ్యస్థానాలు:" : "Select Walking Destination:"}</span>
         </div>
-        <div className="category-pill-row" role="group" aria-label="Walking destinations">
-          {DEMO_DESTINATIONS.map((dest) => (
+                <div className="category-pill-row" role="group" aria-label="Walking destination categories">
+          {WALKING_CATEGORIES.map((cat) => (
             <button
-              key={dest.id}
+              key={cat.id}
               type="button"
               className="category-pill"
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               onClick={() => {
-                if (onSelectDestination) {
-                  onSelectDestination(dest);
-                } else if (onSelectCategory) {
-                  onSelectCategory(dest.en);
+                console.log(`[OutdoorMap] Category clicked: "${cat.query}"`);
+                if (onSelectCategory) {
+                  onSelectCategory(cat.query);
+                } else if (onSelectDestination) {
+                  onSelectDestination(cat.query);
                 }
               }}
-              aria-label={`Walk to ${dest.en}`}
+              aria-label={`Find ${cat.en} near me`}
             >
-              <dest.IconComponent size={16} aria-hidden="true" />
-              <span>{getLabel(dest)}</span>
+              <cat.IconComponent size={16} aria-hidden="true" />
+              <span>{getLabel(cat)}</span>
             </button>
           ))}
         </div>
@@ -474,14 +476,20 @@ export function OutdoorMap({
       {/* Leaflet Map Canvas */}
       <div className="leaflet-map-wrap">
         <div className="map-floating-bar">
-          <div className="map-badge">
+          <div className="map-badge" aria-live="polite">
             {locationStatus === "LOCATING"
-              ? "Locating your position…"
+              ? "📡 Locating your GPS position…"
               : userLocation?.isDemo
-              ? "Demo Origin: Mysuru"
+              ? `📍 Demo GPS (Testing): ${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`
               : userLocation
-              ? `Lat: ${userLocation.latitude.toFixed(4)}, Lng: ${userLocation.longitude.toFixed(4)}${userLocation.accuracy ? ` (±${Math.round(userLocation.accuracy)}m)` : ""}`
-              : "Click map or speak destination"}
+              ? `📍 Lat: ${userLocation.latitude.toFixed(5)}, Lng: ${userLocation.longitude.toFixed(5)}${userLocation.accuracy ? ` (±${Math.round(userLocation.accuracy)}m)` : ""}`
+              : locationStatus === "DENIED"
+              ? "⚠️ Location Permission Denied"
+              : locationStatus === "UNAVAILABLE"
+              ? "⚠️ GPS Signal Unavailable"
+              : locationStatus === "TIMEOUT"
+              ? "⚠️ GPS Timeout — Tap GPS to Retry"
+              : "📍 Click map, select place, or speak destination"}
           </div>
           <div style={{ display: "flex", gap: "6px" }}>
             {onRequestLocation && (
@@ -607,7 +615,7 @@ export function OutdoorMap({
         </div>
       )}
 
-      {errorMessage && status === "ERROR" && (
+      {errorMessage && (status === "ERROR" || status === "ROUTE_NOT_FOUND" || status === "LOCATION_ERROR") && (
         <div className="result-box" style={{ borderColor: "#f44336", color: "#fca5a5", marginTop: "12px", display: "flex", alignItems: "center", gap: 8 }}>
           <IconAlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
           <span>{errorMessage}</span>

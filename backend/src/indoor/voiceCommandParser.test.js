@@ -146,5 +146,19 @@ describe("voiceCommandParser multilingual intent classification", async () => {
     const dRest = parseNavigationUtterance("Find the restroom.");
     assert.equal(dRest.type, "NAVIGATE_TO");
     assert.match(dRest.destination, /restroom/i);
+
+    // 7. General assistance & voice lifecycle commands
+    assert.equal(parseNavigationUtterance("stop voice assistance").type, "STOP_VOICE_ASSISTANCE");
+    assert.equal(parseNavigationUtterance("turn off voice assistance").type, "STOP_VOICE_ASSISTANCE");
+    assert.equal(parseNavigationUtterance("repeat that").type, "REPEAT_INSTRUCTION");
+    assert.equal(parseNavigationUtterance("read the text").type, "READ_TEXT");
+    assert.equal(parseNavigationUtterance("pause indoor navigation").type, "PAUSE_SLAM");
+    assert.equal(parseNavigationUtterance("resume indoor navigation").type, "RESUME_SLAM");
+    assert.equal(parseNavigationUtterance("reset indoor mapping").type, "RESET_SLAM");
+    assert.equal(parseNavigationUtterance("start outdoor navigation").type, "OPEN_OUTDOOR");
+
+    const dBus = parseNavigationUtterance("Take me to the bus stop");
+    assert.equal(dBus.type, "NAVIGATE_TO");
+    assert.equal(dBus.destination, "bus stop");
   });
 });
